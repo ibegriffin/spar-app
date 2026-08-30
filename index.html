@@ -373,10 +373,11 @@ main {
 }
 
 /* 16px verhindert, dass iOS beim Antippen in das Feld hineinzoomt. */
+.suchfeld { position: relative; margin-top: 12px; }
+
 .suche {
   width: 100%;
-  margin-top: 12px;
-  padding: 11px 14px;
+  padding: 11px 44px 11px 14px;
   border: 0;
   border-radius: 12px;
   background: var(--karte);
@@ -386,6 +387,31 @@ main {
 }
 
 .suche::placeholder { color: var(--leise); }
+
+/* Safari blendet hier ein eigenes Kreuz ein — wir nehmen unser eigenes,
+   weil das native auf dem iPhone gar nicht erst erscheint. */
+.suche::-webkit-search-cancel-button { -webkit-appearance: none; display: none; }
+
+.suche-x {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--leise);
+}
+
+.suche-x:active { background: var(--bg); }
+
+.suche-x svg {
+  width: 17px; height: 17px;
+  fill: none; stroke: currentColor;
+  stroke-width: 2.2; stroke-linecap: round;
+}
 
 /* Zähler links, Auswählen rechts — so bleibt die Filterzeile darunter frei. */
 .kzahl-zeile {
@@ -505,6 +531,10 @@ main {
   overflow-wrap: anywhere;
 }
 
+/* Der Ort soll beim Überfliegen der Liste sofort ins Auge fallen. */
+.kiste-meta .ort { font-weight: 700; color: var(--text); }
+.kiste.fertig .kiste-meta .ort { color: var(--leise); }
+
 .kiste-meta mark {
   background: rgba(233, 168, 58, .32);
   color: inherit;
@@ -618,6 +648,21 @@ main {
 }
 
 .option:active { filter: brightness(.97); }
+
+.loeschen {
+  display: block;
+  width: 100%;
+  margin-top: 10px;
+  padding: 12px;
+  border-radius: 12px;
+  color: var(--aus);
+  font-size: 15px;
+  font-weight: 600;
+  transition: background .14s ease, color .14s ease;
+}
+
+.loeschen.scharf { background: var(--aus); color: #fff; }
+.loeschen:disabled { opacity: .5; }
 .k-kopf h2 { margin: 0; }
 .k-sachen { margin: 14px 0 0; padding: 0; list-style: none; }
 
@@ -845,9 +890,14 @@ main {
       <button type="button" class="waehlen" id="btn-waehlen" aria-pressed="false">Auswählen</button>
     </div>
     <div class="balken"><i id="kisten-balken"></i></div>
-    <input id="suche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
-           autocapitalize="none" spellcheck="false" placeholder="Wonach suchst du?"
-           aria-label="Kisten durchsuchen">
+    <div class="suchfeld">
+      <input id="suche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
+             autocapitalize="none" spellcheck="false" placeholder="Wonach suchst du?"
+             aria-label="Kisten durchsuchen">
+      <button type="button" class="suche-x versteckt" id="btn-suche-leeren" aria-label="Suche löschen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
       <div class="kfilter" id="kfilter">
         <button type="button" data-filter="alle" aria-pressed="true">Alle</button>
         <button type="button" data-filter="offen" aria-pressed="false">Offen</button>
@@ -956,6 +1006,7 @@ main {
       <button type="button" data-ort="lager" aria-pressed="false">Im Lager</button>
     </div>
     <button class="absenden" id="btn-kiste-status">Als ausgepackt markieren</button>
+    <button type="button" class="loeschen" id="btn-kiste-loeschen">Kiste löschen</button>
     <button class="abbrechen" data-schliessen>Schließen</button>
   </div>
 </div>
@@ -1112,6 +1163,8 @@ let offeneKiste = null;     // Nummer der Kiste im Blatt
 let auswahlModus = false;   // Mehrfachauswahl aktiv?
 const auswahl = new Set();  // ausgewählte Kistennummern
 let sichtbar = [];          // Nummern der gerade angezeigten Kisten
+let loeschScharf = null;    // Kiste, für die die zweite Bestätigung läuft
+let loeschTimer = null;     // dreht die Bestätigung von selbst zurück
 
 /* --- Server-Zugriff ------------------------------------------------------- */
 async function ruf(nutzlast) {
@@ -1144,7 +1197,7 @@ function mockRuf(nutzlast) {
   return new Promise((fertig) => {
     setTimeout(() => {
       if (nutzlast.action === "kisten" || nutzlast.action === "kisten_setzen" ||
-          nutzlast.action === "kiste") {
+          nutzlast.action === "kiste_loeschen" || nutzlast.action === "kiste") {
         return fertig(mockKisten(nutzlast));
       }
       const daten = lies(SPEICHER.mock, null) || mockStart();
@@ -1187,6 +1240,16 @@ function mockStart() {
 
 function mockKisten(nutzlast) {
   const daten = lies(SPEICHER.mockKisten, null) || mockKistenStart();
+  if (nutzlast.action === "kiste_loeschen") {
+    const nr = Number(nutzlast.nr);
+    if (!daten.kisten.some(function (k) { return k.nr === nr; })) {
+      return { ok: false, error: "unbekannt" };
+    }
+    daten.kisten = daten.kisten.filter(function (k) { return k.nr !== nr; });
+    daten.sachen = daten.sachen.filter(function (sa) { return sa.nr !== nr; });
+    schreibe(SPEICHER.mockKisten, daten);
+    return { ok: true, kisten: daten.kisten, sachen: daten.sachen };
+  }
   if (nutzlast.action !== "kisten") {
     const nrs = Array.isArray(nutzlast.nrs)
       ? nutzlast.nrs.map(Number)
@@ -1664,12 +1727,16 @@ function kistenZeile(k, q) {
   const meta = document.createElement("div");
   meta.className = "kiste-meta";
   const unten = [];
-  if (zeigen.length || k.notiz) unten.push(k.raum || "Ohne Raum");
-  if (ortText(k.ort)) unten.push(ortText(k.ort));
-  if (zeigen.length && k.notiz) unten.push(k.notiz);
+  if (zeigen.length || k.notiz) unten.push({ text: k.raum || "Ohne Raum", ort: false });
+  if (ortText(k.ort)) unten.push({ text: ortText(k.ort), ort: true });
+  if (zeigen.length && k.notiz) unten.push({ text: k.notiz, ort: false });
   unten.forEach(function (t, i) {
     if (i) meta.append(" · ");
-    meta.append(markiere(t, q));
+    if (!t.ort) { meta.append(markiere(t.text, q)); return; }
+    const fett = document.createElement("b");
+    fett.className = "ort";
+    fett.append(markiere(t.text, q));
+    meta.append(fett);
   });
 
   text.append(titel, meta);
@@ -1740,7 +1807,73 @@ function kisteZeichnen(nr) {
   $("btn-kiste-status").textContent = istFertig(k)
     ? "Wieder als offen markieren"
     : "Als ausgepackt markieren";
+  loeschKnopfZuruecksetzen();
   return true;
+}
+
+function loeschKnopfZuruecksetzen() {
+  clearTimeout(loeschTimer);
+  loeschScharf = null;
+  const knopf = $("btn-kiste-loeschen");
+  knopf.classList.remove("scharf");
+  knopf.textContent = "Kiste löschen";
+}
+
+/**
+ * Löschen in zwei Schritten: der erste Tipp schärft den Knopf und benennt,
+ * was verschwindet, der zweite löscht. Nach sechs Sekunden ohne Bestätigung
+ * fällt er von selbst zurück.
+ */
+function loeschKnopfGetippt() {
+  if (offeneKiste === null) return;
+
+  if (loeschScharf !== offeneKiste) {
+    loeschScharf = offeneKiste;
+    const anzahl = sachenDerKiste(offeneKiste).length;
+    const knopf = $("btn-kiste-loeschen");
+    knopf.classList.add("scharf");
+    knopf.textContent = anzahl
+      ? "Wirklich löschen — mit " + anzahl + (anzahl === 1 ? " Gegenstand" : " Gegenständen")
+      : "Wirklich löschen";
+    clearTimeout(loeschTimer);
+    loeschTimer = setTimeout(loeschKnopfZuruecksetzen, 6000);
+    return;
+  }
+
+  kisteLoeschen(offeneKiste);
+}
+
+/** Kein Vorgriff auf die Anzeige: gelöscht wird erst, wenn das Sheet bestätigt. */
+async function kisteLoeschen(nr) {
+  loeschKnopfZuruecksetzen();
+  const knopf = $("btn-kiste-loeschen");
+  knopf.disabled = true;
+  ladeAnzeige(true);
+  try {
+    const antwort = await ruf({
+      action: "kiste_loeschen",
+      code: lies(SPEICHER.code, ""),
+      nr: nr
+    });
+    if (antwort && antwort.ok) {
+      offeneKiste = null;
+      auswahl.delete(nr);
+      overlayZu("kiste");
+      uebernimmKisten(antwort);
+      auswahlLeiste();
+      toast("Kiste " + nr + " gelöscht");
+    } else if (antwort && antwort.error === "code") {
+      overlayZu("kiste");
+      codeAbgelehnt();
+    } else {
+      toast("Nicht gelöscht — bitte erneut versuchen.");
+    }
+  } catch (e) {
+    toast("Nicht gelöscht — bitte erneut versuchen.");
+  } finally {
+    knopf.disabled = false;
+    ladeAnzeige(false);
+  }
 }
 
 function kisteOeffnen(nr) {
@@ -1986,6 +2119,7 @@ $("kiste-ort").addEventListener("click", (e) => {
 for (const ereignis of ["input", "search"]) {
   $("suche").addEventListener(ereignis, () => {
     suchtext = $("suche").value;
+    $("btn-suche-leeren").classList.toggle("versteckt", suchtext === "");
     zeichneKisten();
   });
 }
@@ -2001,6 +2135,16 @@ $("kisten-liste").addEventListener("click", (e) => {
 
 $("btn-kiste-status").addEventListener("click", () => {
   if (offeneKiste !== null) kisteUmschalten(offeneKiste);
+});
+
+$("btn-kiste-loeschen").addEventListener("click", loeschKnopfGetippt);
+
+$("btn-suche-leeren").addEventListener("click", () => {
+  $("suche").value = "";
+  suchtext = "";
+  $("btn-suche-leeren").classList.add("versteckt");
+  zeichneKisten();
+  $("suche").focus();
 });
 
 $("betrag").addEventListener("input", () => {
@@ -2102,6 +2246,77 @@ $("btn-code-neu").addEventListener("click", () => {
     anzeige.style.height = "0px";
     if (weg >= 56) aktualisiere(false);
   }, { passive: true });
+})();
+
+/* Blatt nach unten wegziehen ----------------------------------------------- */
+/*
+ * Jedes Blatt lässt sich am oberen Rand nach unten schieben und schließt sich,
+ * wenn man weit genug gezogen hat. Der Griff bleibt der sichtbare Hinweis,
+ * die Schließen-Knöpfe bleiben ebenfalls.
+ *
+ * Losgezogen wird nur, wenn das Blatt schon ganz oben steht — sonst würde
+ * die Geste den scrollbaren Inhalt festhalten.
+ */
+(function ziehenZumSchliessen() {
+  const SCHWELLE = 90;
+
+  for (const overlay of document.querySelectorAll(".overlay")) {
+    const blatt = overlay.querySelector(".blatt");
+    if (!blatt) continue;
+
+    let startY = 0;
+    let startX = 0;
+    let weg = 0;
+    let aktiv = false;
+    let entschieden = false;
+
+    blatt.addEventListener("touchstart", (e) => {
+      aktiv = e.touches.length === 1 && blatt.scrollTop <= 0;
+      entschieden = false;
+      weg = 0;
+      if (!aktiv) return;
+      startY = e.touches[0].clientY;
+      startX = e.touches[0].clientX;
+      blatt.style.transition = "none";
+    }, { passive: true });
+
+    blatt.addEventListener("touchmove", (e) => {
+      if (!aktiv) return;
+      const dy = e.touches[0].clientY - startY;
+      const dx = e.touches[0].clientX - startX;
+
+      if (!entschieden) {
+        if (Math.abs(dy) < 6 && Math.abs(dx) < 6) return;
+        entschieden = true;
+        // Nach oben wischen und waagerechte Gesten gehören dem Inhalt.
+        if (dy <= 0 || Math.abs(dx) > Math.abs(dy)) {
+          aktiv = false;
+          blatt.style.transition = "";
+          return;
+        }
+      }
+
+      if (dy <= 0) {
+        weg = 0;
+        blatt.style.transform = "";
+        return;
+      }
+      e.preventDefault();
+      weg = dy;
+      blatt.style.transform = "translateY(" + weg + "px)";
+    }, { passive: false });
+
+    const loslassen = () => {
+      blatt.style.transition = "";
+      blatt.style.transform = "";
+      if (aktiv && weg > SCHWELLE) overlayZu(overlay.id);
+      aktiv = false;
+      weg = 0;
+    };
+
+    blatt.addEventListener("touchend", loslassen, { passive: true });
+    blatt.addEventListener("touchcancel", loslassen, { passive: true });
+  }
 })();
 
 /* Blatt über der iOS-Tastatur halten --------------------------------------- */
