@@ -347,7 +347,6 @@ main {
 }
 
 .kzahl {
-  margin-top: 14px;
   font-size: clamp(26px, 8vw, 34px);
   font-weight: 700;
   letter-spacing: -.02em;
@@ -388,16 +387,49 @@ main {
 
 .suche::placeholder { color: var(--leise); }
 
-.kfilter { display: flex; gap: 7px; margin-top: 10px; }
+/* Zähler links, Auswählen rechts — so bleibt die Filterzeile darunter frei. */
+.kzahl-zeile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
 
-.kfilter button {
+/* Die Filter-Chips scrollen waagerecht, wenn sie nicht in eine Zeile passen. */
+.kfilter {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.kfilter::-webkit-scrollbar { display: none; }
+
+.kfilter button, .waehlen {
+  flex: none;
   padding: 5px 12px;
   border-radius: 999px;
   font-size: 13px;
   font-weight: 600;
+  white-space: nowrap;
   color: #fff;
   background: rgba(255, 255, 255, .16);
   opacity: .84;
+}
+
+.kfilter .trenner {
+  flex: none;
+  width: 1px;
+  margin: 4px 1px;
+  background: rgba(255, 255, 255, .3);
+}
+
+.waehlen[aria-pressed="true"] {
+  background: var(--pille);
+  color: var(--pille-text);
+  opacity: 1;
 }
 
 .kfilter button[aria-pressed="true"] {
@@ -444,6 +476,22 @@ main {
 }
 
 .kiste.fertig .kiste-nr { background: var(--linie); color: var(--leise); }
+
+/* Im Auswahl-Modus bedeutet der Kreis „ausgewählt“, nicht „ausgepackt“ —
+   sonst sähen bereits ausgepackte Kisten wie angehakte aus. */
+.kiste.gewaehlt { background: rgba(30, 122, 96, .09); }
+
+#kisten-liste.waehlt .kiste.fertig .haken {
+  border-color: var(--linie);
+  background: none;
+  color: transparent;
+}
+
+#kisten-liste.waehlt .kiste.gewaehlt .haken {
+  border-color: var(--gruen-1);
+  background: var(--gruen-1);
+  color: #fff;
+}
 
 .kiste-text { flex: 1; min-width: 0; }
 
@@ -500,8 +548,76 @@ main {
   font-weight: 600;
 }
 
+/* Leiste am unteren Rand, solange etwas ausgewählt ist */
+.aleiste {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px var(--seite) calc(var(--unten) + 10px);
+  background: var(--karte);
+  border-top: 1px solid var(--linie);
+}
+
+.aleiste .anzahl { flex: 1; min-width: 0; font-size: 14.5px; font-weight: 600; }
+
+.aleiste button {
+  flex: none;
+  min-height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.aleiste .neben { background: var(--bg); color: var(--text); }
+.aleiste .haupt { background: var(--gruen-1); color: #fff; }
+.aleiste .haupt:disabled { opacity: .4; }
+
+@media (prefers-color-scheme: dark) {
+  .aleiste .haupt { background: #1b6b54; }
+}
+
 /* Kisten-Blatt */
 .k-kopf { display: flex; align-items: center; gap: 12px; }
+
+.ortwahl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px;
+  margin-top: 14px;
+  padding: 4px;
+  border-radius: 12px;
+  background: var(--karte);
+}
+
+.ortwahl button {
+  padding: 9px 4px;
+  border-radius: 9px;
+  font-size: 14.5px;
+  font-weight: 600;
+  color: var(--leise);
+}
+
+.ortwahl button[aria-pressed="true"] {
+  background: var(--gruen-1);
+  color: #fff;
+}
+
+.option {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  background: var(--karte);
+  color: var(--text);
+  font-size: 15.5px;
+  font-weight: 600;
+  text-align: left;
+}
+
+.option:active { filter: brightness(.97); }
 .k-kopf h2 { margin: 0; }
 .k-sachen { margin: 14px 0 0; padding: 0; list-style: none; }
 
@@ -724,16 +840,22 @@ main {
   </div>
 
   <div id="kopf-kisten" class="versteckt">
-    <div class="kzahl zahl" id="kisten-zahl" aria-live="polite">—</div>
+    <div class="kzahl-zeile">
+      <div class="kzahl zahl" id="kisten-zahl" aria-live="polite">—</div>
+      <button type="button" class="waehlen" id="btn-waehlen" aria-pressed="false">Auswählen</button>
+    </div>
     <div class="balken"><i id="kisten-balken"></i></div>
     <input id="suche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
            autocapitalize="none" spellcheck="false" placeholder="Wonach suchst du?"
            aria-label="Kisten durchsuchen">
-    <div class="kfilter" id="kfilter">
-      <button type="button" data-filter="alle" aria-pressed="true">Alle</button>
-      <button type="button" data-filter="offen" aria-pressed="false">Offen</button>
-      <button type="button" data-filter="fertig" aria-pressed="false">Ausgepackt</button>
-    </div>
+      <div class="kfilter" id="kfilter">
+        <button type="button" data-filter="alle" aria-pressed="true">Alle</button>
+        <button type="button" data-filter="offen" aria-pressed="false">Offen</button>
+        <button type="button" data-filter="fertig" aria-pressed="false">Ausgepackt</button>
+        <span class="trenner" aria-hidden="true"></span>
+        <button type="button" data-ort="lager" aria-pressed="false">Lager</button>
+        <button type="button" data-ort="wohnung" aria-pressed="false">Wohnung</button>
+      </div>
   </div>
 
   <div class="stand" id="stand"></div>
@@ -755,6 +877,12 @@ main {
   <button class="tat raus" id="btn-aus">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>Entnehmen
   </button>
+</div>
+
+<div class="aleiste versteckt" id="auswahl-leiste">
+  <span class="anzahl" id="auswahl-anzahl">0 ausgewählt</span>
+  <button type="button" class="neben" id="btn-alle">Alle</button>
+  <button type="button" class="haupt" id="btn-aendern" disabled>Ändern</button>
 </div>
 
 <!-- Buchen -->
@@ -823,8 +951,26 @@ main {
     <p class="hilfe" id="kiste-meta"></p>
     <ul class="k-sachen" id="kiste-sachen"></ul>
     <div class="k-text versteckt" id="kiste-text"></div>
+    <div class="ortwahl" id="kiste-ort">
+      <button type="button" data-ort="wohnung" aria-pressed="false">In der Wohnung</button>
+      <button type="button" data-ort="lager" aria-pressed="false">Im Lager</button>
+    </div>
     <button class="absenden" id="btn-kiste-status">Als ausgepackt markieren</button>
     <button class="abbrechen" data-schliessen>Schließen</button>
+  </div>
+</div>
+
+<!-- Mehrere Kisten ändern -->
+<div class="overlay" id="aendern" role="dialog" aria-modal="true" aria-labelledby="aendern-titel">
+  <div class="blatt">
+    <div class="griff"></div>
+    <h2 id="aendern-titel">Kisten ändern</h2>
+    <button type="button" class="option" data-setze="status:ausgepackt">Als ausgepackt markieren</button>
+    <button type="button" class="option" data-setze="status:">Als noch zu markieren</button>
+    <button type="button" class="option" data-setze="ort:lager">Ort: Lager</button>
+    <button type="button" class="option" data-setze="ort:wohnung">Ort: Wohnung</button>
+    <button type="button" class="option" data-setze="ort:">Ort wieder offen lassen</button>
+    <button class="abbrechen" data-schliessen>Abbrechen</button>
   </div>
 </div>
 
@@ -961,7 +1107,11 @@ let kisten = null;          // { kisten: [...], sachen: [...] }
 let kistenGeladenAm = null; // ISO-Zeitpunkt des letzten Kisten-Ladens
 let suchtext = "";          // Inhalt des Suchfelds
 let kFilter = "alle";       // "alle" | "offen" | "fertig"
+let ortFilter = "";         // "" | "lager" | "wohnung"
 let offeneKiste = null;     // Nummer der Kiste im Blatt
+let auswahlModus = false;   // Mehrfachauswahl aktiv?
+const auswahl = new Set();  // ausgewählte Kistennummern
+let sichtbar = [];          // Nummern der gerade angezeigten Kisten
 
 /* --- Server-Zugriff ------------------------------------------------------- */
 async function ruf(nutzlast) {
@@ -993,7 +1143,8 @@ async function ruf(nutzlast) {
 function mockRuf(nutzlast) {
   return new Promise((fertig) => {
     setTimeout(() => {
-      if (nutzlast.action === "kisten" || nutzlast.action === "kiste") {
+      if (nutzlast.action === "kisten" || nutzlast.action === "kisten_setzen" ||
+          nutzlast.action === "kiste") {
         return fertig(mockKisten(nutzlast));
       }
       const daten = lies(SPEICHER.mock, null) || mockStart();
@@ -1036,9 +1187,15 @@ function mockStart() {
 
 function mockKisten(nutzlast) {
   const daten = lies(SPEICHER.mockKisten, null) || mockKistenStart();
-  if (nutzlast.action === "kiste") {
-    const nr = Number(nutzlast.nr);
-    for (const k of daten.kisten) if (k.nr === nr) k.status = String(nutzlast.status || "");
+  if (nutzlast.action !== "kisten") {
+    const nrs = Array.isArray(nutzlast.nrs)
+      ? nutzlast.nrs.map(Number)
+      : [Number(nutzlast.nr)];
+    for (const k of daten.kisten) {
+      if (nrs.indexOf(k.nr) < 0) continue;
+      if (nutzlast.status !== undefined) k.status = String(nutzlast.status || "");
+      if (nutzlast.ort !== undefined) k.ort = String(nutzlast.ort || "");
+    }
     schreibe(SPEICHER.mockKisten, daten);
   }
   return { ok: true, kisten: daten.kisten, sachen: daten.sachen };
@@ -1047,11 +1204,11 @@ function mockKisten(nutzlast) {
 function mockKistenStart() {
   const daten = {
     kisten: [
-      { nr: 3,  raum: "Schlafzimmer",  notiz: "", status: "", text: "Box 3 Schlafzimmer, Bettwäsche und Handtücher." },
-      { nr: 12, raum: "Küche",         notiz: "", status: "ausgepackt", text: "Box 12 Küche, Töpfe und Pfannen, zwei Auflaufformen." },
-      { nr: 21, raum: "Arbeitszimmer", notiz: "zuerst auspacken", status: "", text: "Box 21 Arbeitszimmer, Kabel, Ladegeräte, Bohrmaschine mit Zubehör." },
-      { nr: 47, raum: "Küche",         notiz: "", status: "", text: "Box 47 Küche, Wasserkocher, Kaffeemühle und die guten Gläser." },
-      { nr: 85, raum: "Keller",        notiz: "Küchensachen", status: "", text: "Box 85 Küche aus dem Keller, elektrische Wärmeplatte, Kontaktgrill von Tefal, große Käseglocke, Tortenanrichteteller und großes Grillbesteck." }
+      { nr: 3,  raum: "Schlafzimmer",  notiz: "", status: "", ort: "wohnung", text: "Box 3 Schlafzimmer, Bettwäsche und Handtücher." },
+      { nr: 12, raum: "Küche",         notiz: "", status: "ausgepackt", ort: "wohnung", text: "Box 12 Küche, Töpfe und Pfannen, zwei Auflaufformen." },
+      { nr: 21, raum: "Arbeitszimmer", notiz: "zuerst auspacken", status: "", ort: "wohnung", text: "Box 21 Arbeitszimmer, Kabel, Ladegeräte, Bohrmaschine mit Zubehör." },
+      { nr: 47, raum: "Küche",         notiz: "", status: "", ort: "lager", text: "Box 47 Küche, Wasserkocher, Kaffeemühle und die guten Gläser." },
+      { nr: 85, raum: "Keller",        notiz: "Küchensachen", status: "", ort: "lager", text: "Box 85 Küche aus dem Keller, elektrische Wärmeplatte, Kontaktgrill von Tefal, große Käseglocke, Tortenanrichteteller und großes Grillbesteck." }
     ],
     sachen: [
       { nr: 3,  sache: "Bettwäsche",              kategorie: "Textil",   zerbrechlich: false },
@@ -1316,6 +1473,13 @@ function istFertig(k) {
   return String((k && k.status) || "") === "ausgepackt";
 }
 
+/** „lager“/„wohnung“ als Text; leer heißt: noch nicht festgelegt. */
+function ortText(ort) {
+  if (ort === "lager") return "Lager";
+  if (ort === "wohnung") return "Wohnung";
+  return "";
+}
+
 function sachenDerKiste(nr) {
   return kisten ? kisten.sachen.filter(function (s) { return s.nr === nr; }) : [];
 }
@@ -1401,11 +1565,19 @@ function zeichneKisten() {
   const gefiltert = alle.filter(function (k) {
     if (kFilter === "offen" && istFertig(k)) return false;
     if (kFilter === "fertig" && !istFertig(k)) return false;
+    if (ortFilter && k.ort !== ortFilter) return false;
     if (!q) return true;
     if (String(k.nr) === q) return true;
     if (passt(k.raum, q) || passt(k.notiz, q) || passt(k.text, q)) return true;
     return sachenDerKiste(k.nr).some(function (sa) { return passt(sa.sache, q); });
   });
+
+  sichtbar = gefiltert.map(function (k) { return k.nr; });
+  if (auswahlModus) {
+    // Was der Filter ausblendet, darf nicht heimlich mitgeändert werden.
+    for (const nr of Array.from(auswahl)) if (sichtbar.indexOf(nr) < 0) auswahl.delete(nr);
+    auswahlLeiste();
+  }
 
   if (!alle.length) {
     ziel.replaceChildren(leerText("Noch keine Kisten im Sheet. Sobald die Aufnahmen eingelesen sind, stehen sie hier."));
@@ -1454,7 +1626,7 @@ function kistenZeile(k, q) {
   const fertig = istFertig(k);
 
   const el = document.createElement("div");
-  el.className = "kiste" + (fertig ? " fertig" : "");
+  el.className = "kiste" + (fertig ? " fertig" : "") + (auswahl.has(k.nr) ? " gewaehlt" : "");
 
   const haupt = document.createElement("button");
   haupt.type = "button";
@@ -1493,6 +1665,7 @@ function kistenZeile(k, q) {
   meta.className = "kiste-meta";
   const unten = [];
   if (zeigen.length || k.notiz) unten.push(k.raum || "Ohne Raum");
+  if (ortText(k.ort)) unten.push(ortText(k.ort));
   if (zeigen.length && k.notiz) unten.push(k.notiz);
   unten.forEach(function (t, i) {
     if (i) meta.append(" · ");
@@ -1506,8 +1679,10 @@ function kistenZeile(k, q) {
   haken.type = "button";
   haken.className = "haken";
   haken.dataset.haken = String(k.nr);
-  haken.setAttribute("aria-pressed", String(fertig));
-  haken.setAttribute("aria-label", "Kiste " + k.nr + (fertig ? " wieder als offen" : " als ausgepackt") + " markieren");
+  haken.setAttribute("aria-pressed", String(auswahlModus ? auswahl.has(k.nr) : fertig));
+  haken.setAttribute("aria-label", auswahlModus
+    ? "Kiste " + k.nr + " auswählen"
+    : "Kiste " + k.nr + (fertig ? " wieder als offen" : " als ausgepackt") + " markieren");
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("viewBox", "0 0 24 24");
   svg.setAttribute("aria-hidden", "true");
@@ -1558,6 +1733,10 @@ function kisteZeichnen(nr) {
   txt.textContent = k.text || "";
   txt.classList.toggle("versteckt", !k.text);
 
+  for (const b of $("kiste-ort").querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.ort === k.ort));
+  }
+
   $("btn-kiste-status").textContent = istFertig(k)
     ? "Wieder als offen markieren"
     : "Als ausgepackt markieren";
@@ -1571,47 +1750,83 @@ function kisteOeffnen(nr) {
 }
 
 /**
- * Auf- und Zubuchen. Die Anzeige springt sofort um und wird nur zurückgedreht,
- * wenn das Sheet die Änderung ablehnt — sonst wäre das Abhaken beim Auspacken
- * bei jedem Antippen ein bis drei Sekunden zäh.
+ * Setzt ein Feld (status oder ort) für eine oder viele Kisten.
+ * Die Anzeige springt sofort um und wird nur zurückgedreht, wenn das Sheet
+ * ablehnt — sonst hinge jedes Antippen am Apps-Script-Kaltstart.
  */
-async function kisteUmschalten(nr) {
-  const k = kisten && kisten.kisten.find(function (x) { return x.nr === nr; });
-  if (!k) return;
+async function kistenSetzen(nrs, feld, wert) {
+  if (!kisten || !nrs.length) return false;
 
-  const vorher = k.status;
-  const neu = istFertig(k) ? "" : "ausgepackt";
+  const betroffen = kisten.kisten.filter(function (k) { return nrs.indexOf(k.nr) >= 0; });
+  if (!betroffen.length) return false;
+
+  const vorher = betroffen.map(function (k) { return { kiste: k, wert: k[feld] }; });
   const zurueck = function () {
-    k.status = vorher;
+    for (const e of vorher) e.kiste[feld] = e.wert;
     zeichneKisten();
-    if (offeneKiste === nr) kisteZeichnen(nr);
+    if (offeneKiste !== null) kisteZeichnen(offeneKiste);
   };
 
-  k.status = neu;
+  for (const k of betroffen) k[feld] = wert;
   zeichneKisten();
-  if (offeneKiste === nr) kisteZeichnen(nr);
+  if (offeneKiste !== null) kisteZeichnen(offeneKiste);
+
+  const nutzlast = { action: "kisten_setzen", code: lies(SPEICHER.code, ""), nrs: nrs };
+  nutzlast[feld] = wert;
 
   try {
-    const antwort = await ruf({
-      action: "kiste",
-      code: lies(SPEICHER.code, ""),
-      nr: nr,
-      status: neu
-    });
+    const antwort = await ruf(nutzlast);
     if (antwort && antwort.ok) {
       uebernimmKisten(antwort);
-      if (offeneKiste === nr) kisteZeichnen(nr);
-    } else if (antwort && antwort.error === "code") {
-      zurueck();
-      codeAbgelehnt();
-    } else {
-      zurueck();
-      toast("Nicht gespeichert — bitte erneut versuchen.");
+      if (offeneKiste !== null) kisteZeichnen(offeneKiste);
+      return true;
     }
+    zurueck();
+    if (antwort && antwort.error === "code") codeAbgelehnt();
+    else toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
   } catch (e) {
     zurueck();
     toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
   }
+}
+
+function kisteUmschalten(nr) {
+  const k = kisten && kisten.kisten.find(function (x) { return x.nr === nr; });
+  if (!k) return;
+  kistenSetzen([nr], "status", istFertig(k) ? "" : "ausgepackt");
+}
+
+/* --- Mehrfachauswahl ------------------------------------------------------ */
+
+function setzeAuswahlModus(an) {
+  auswahlModus = !!an;
+  auswahl.clear();
+  $("kisten-liste").classList.toggle("waehlt", auswahlModus);
+  $("btn-waehlen").setAttribute("aria-pressed", String(auswahlModus));
+  $("btn-waehlen").textContent = auswahlModus ? "Fertig" : "Auswählen";
+  auswahlLeiste();
+  zeichneKisten();
+}
+
+function auswahlLeiste() {
+  const anzahl = auswahl.size;
+  $("auswahl-leiste").classList.toggle("versteckt", !(auswahlModus && bereich === "kisten"));
+  $("auswahl-anzahl").textContent = anzahl === 1 ? "1 ausgewählt" : anzahl + " ausgewählt";
+  $("btn-aendern").disabled = anzahl === 0;
+  $("btn-alle").textContent = alleSichtbarenGewaehlt() ? "Keine" : "Alle";
+}
+
+function alleSichtbarenGewaehlt() {
+  return sichtbar.length > 0 && sichtbar.every(function (nr) { return auswahl.has(nr); });
+}
+
+function auswahlUmschalten(nr) {
+  if (auswahl.has(nr)) auswahl.delete(nr);
+  else auswahl.add(nr);
+  auswahlLeiste();
+  zeichneKisten();
 }
 
 /** Reiter umschalten. laden=false beim Start, dort lädt aktualisiere(). */
@@ -1628,6 +1843,8 @@ function setzeBereich(neu, laden) {
   $("liste").classList.toggle("versteckt", istK);
   $("kisten-liste").classList.toggle("versteckt", !istK);
   $("aktionen").classList.toggle("versteckt", istK);
+  if (!istK && auswahlModus) setzeAuswahlModus(false);
+  auswahlLeiste();
   $("liste-bereich").scrollTop = 0;
   standHinweis(false);
 
@@ -1706,14 +1923,63 @@ $("reiter").addEventListener("click", (e) => {
   if (knopf) setzeBereich(knopf.dataset.bereich, true);
 });
 
+// Zwei Gruppen in einer Zeile: Status wird umgeschaltet, Ort an- und abgewählt.
 $("kfilter").addEventListener("click", (e) => {
-  const knopf = e.target.closest("button[data-filter]");
-  if (!knopf) return;
-  kFilter = knopf.dataset.filter;
-  for (const b of $("kfilter").querySelectorAll("button")) {
+  const statusKnopf = e.target.closest("button[data-filter]");
+  const ortKnopf = e.target.closest("button[data-ort]");
+  if (!statusKnopf && !ortKnopf) return;
+
+  if (statusKnopf) kFilter = statusKnopf.dataset.filter;
+  if (ortKnopf) ortFilter = ortFilter === ortKnopf.dataset.ort ? "" : ortKnopf.dataset.ort;
+
+  for (const b of $("kfilter").querySelectorAll("button[data-filter]")) {
     b.setAttribute("aria-pressed", String(b.dataset.filter === kFilter));
   }
+  for (const b of $("kfilter").querySelectorAll("button[data-ort]")) {
+    b.setAttribute("aria-pressed", String(b.dataset.ort === ortFilter));
+  }
   zeichneKisten();
+});
+
+$("btn-waehlen").addEventListener("click", () => setzeAuswahlModus(!auswahlModus));
+
+$("btn-alle").addEventListener("click", () => {
+  const abwaehlen = alleSichtbarenGewaehlt();
+  for (const nr of sichtbar) {
+    if (abwaehlen) auswahl.delete(nr);
+    else auswahl.add(nr);
+  }
+  auswahlLeiste();
+  zeichneKisten();
+});
+
+$("btn-aendern").addEventListener("click", () => {
+  const anzahl = auswahl.size;
+  if (!anzahl) return;
+  $("aendern-titel").textContent = anzahl === 1 ? "1 Kiste ändern" : anzahl + " Kisten ändern";
+  overlayAuf("aendern");
+});
+
+$("aendern").addEventListener("click", async (e) => {
+  const knopf = e.target.closest("button[data-setze]");
+  if (!knopf) return;
+  const trenner = knopf.dataset.setze.indexOf(":");
+  const feld = knopf.dataset.setze.slice(0, trenner);
+  const wert = knopf.dataset.setze.slice(trenner + 1);
+  const nrs = Array.from(auswahl);
+  overlayZu("aendern");
+  if (await kistenSetzen(nrs, feld, wert)) {
+    toast(nrs.length === 1 ? "1 Kiste geändert" : nrs.length + " Kisten geändert");
+    setzeAuswahlModus(false);
+  }
+});
+
+$("kiste-ort").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-ort]");
+  if (!knopf || offeneKiste === null) return;
+  const k = kisten && kisten.kisten.find((x) => x.nr === offeneKiste);
+  if (!k) return;
+  kistenSetzen([offeneKiste], "ort", k.ort === knopf.dataset.ort ? "" : knopf.dataset.ort);
 });
 
 // „search“ fängt zusätzlich das kleine X im Suchfeld ab.
@@ -1725,10 +1991,12 @@ for (const ereignis of ["input", "search"]) {
 }
 
 $("kisten-liste").addEventListener("click", (e) => {
-  const haken = e.target.closest("button[data-haken]");
-  if (haken) { kisteUmschalten(Number(haken.dataset.haken)); return; }
-  const zeile = e.target.closest("button[data-nr]");
-  if (zeile) kisteOeffnen(Number(zeile.dataset.nr));
+  const knopf = e.target.closest("button[data-nr], button[data-haken]");
+  if (!knopf) return;
+  const nr = Number(knopf.dataset.nr !== undefined ? knopf.dataset.nr : knopf.dataset.haken);
+  if (auswahlModus) { auswahlUmschalten(nr); return; }
+  if (knopf.dataset.haken !== undefined) { kisteUmschalten(nr); return; }
+  kisteOeffnen(nr);
 });
 
 $("btn-kiste-status").addEventListener("click", () => {
@@ -1746,13 +2014,13 @@ for (const el of document.querySelectorAll("[data-schliessen]")) {
   el.addEventListener("click", () => overlayZu(el.closest(".overlay").id));
 }
 
-for (const id of ["buchen", "menu", "kiste"]) {
+for (const id of ["buchen", "menu", "kiste", "aendern"]) {
   $(id).addEventListener("click", (e) => { if (e.target.id === id) overlayZu(id); });
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  for (const id of ["buchen", "menu", "kiste"]) overlayZu(id);
+  for (const id of ["buchen", "menu", "kiste", "aendern"]) overlayZu(id);
 });
 
 for (const feld of [$("betrag"), $("kommentar")]) {
