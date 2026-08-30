@@ -19,8 +19,8 @@
 <style>
 /* ---------------------------------------------------------------------------
    Sparglas — eine Datei, kein Framework, kein Build-Schritt.
-   Aufbau: 1) Farben & Grundlagen  2) Kopf  3) Liste  4) Aktionen
-           5) Overlays (Buchen, Einrichten, Einstellungen)  6) Hinweise
+   Aufbau: 1) Farben & Grundlagen  2) Kopf  3) Liste  4) Aktionen  5) Kisten
+           6) Overlays (Buchen, Einrichten, Einstellungen, Kiste)  7) Hinweise
    --------------------------------------------------------------------------- */
 
 /* 1) Farben & Grundlagen --------------------------------------------------- */
@@ -30,6 +30,8 @@
   --ein: #0f6b46;
   --aus: #b0432c;
   --gold: #e9a83a;
+  --pille: #ffffff;
+  --pille-text: #14211c;
 
   --bg: #f1f4f2;
   --karte: #ffffff;
@@ -53,6 +55,8 @@
     --text: #e7efeb;
     --leise: #93a49d;
     --linie: #25332d;
+    --pille: #d7e7e0;
+    --pille-text: #0f1d18;
     --schatten: 0 1px 2px rgba(0, 0, 0, .4);
   }
 }
@@ -312,7 +316,214 @@ main {
   .tat.raus { background: #7c3421; }
 }
 
-/* 5) Overlays -------------------------------------------------------------- */
+/* 5) Kisten ---------------------------------------------------------------- */
+/* Umschalter zwischen Sparglas und Kisten, sitzt im gruenen Kopf. */
+.reiter {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 3px;
+  margin-top: 14px;
+  padding: 3px;
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .16);
+}
+
+.reiter button {
+  padding: 7px 4px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  opacity: .8;
+  transition: background .16s ease, opacity .16s ease;
+}
+
+/* Die gewaehlte Pille muss im gruenen Kopf heller sein als der Grund — im
+   Dunkelmodus ist die Kartenfarbe dafuer zu dunkel, deshalb ein eigenes Paar. */
+.reiter button[aria-selected="true"] {
+  background: var(--pille);
+  color: var(--pille-text);
+  opacity: 1;
+}
+
+.kzahl {
+  margin-top: 14px;
+  font-size: clamp(26px, 8vw, 34px);
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.1;
+}
+
+.kzahl small { font-size: 15px; font-weight: 600; opacity: .82; }
+
+.balken {
+  margin-top: 9px;
+  height: 5px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, .22);
+  overflow: hidden;
+}
+
+.balken i {
+  display: block;
+  height: 100%;
+  width: 0;
+  border-radius: 3px;
+  background: var(--gold);
+  transition: width .3s ease;
+}
+
+/* 16px verhindert, dass iOS beim Antippen in das Feld hineinzoomt. */
+.suche {
+  width: 100%;
+  margin-top: 12px;
+  padding: 11px 14px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--karte);
+  color: var(--text);
+  font-size: 16px;
+  -webkit-appearance: none;
+}
+
+.suche::placeholder { color: var(--leise); }
+
+.kfilter { display: flex; gap: 7px; margin-top: 10px; }
+
+.kfilter button {
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, .16);
+  opacity: .84;
+}
+
+.kfilter button[aria-pressed="true"] {
+  background: var(--pille);
+  color: var(--pille-text);
+  opacity: 1;
+}
+
+/* Eine Zeile = zwei Knoepfe nebeneinander: oeffnen und abhaken. Verschachtelte
+   Buttons sind in HTML nicht erlaubt, deshalb der Rahmen als div. */
+.kiste {
+  display: flex;
+  align-items: center;
+  border-top: 1px solid var(--linie);
+}
+
+.gruppe .kiste:first-child { border-top: 0; }
+
+.kiste-haupt {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 4px 11px 14px;
+  text-align: left;
+}
+
+.kiste-haupt:active { background: rgba(30, 122, 96, .07); }
+
+.kiste-nr {
+  flex: none;
+  min-width: 42px;
+  height: 34px;
+  padding: 0 7px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ein);
+  font-size: 16px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.kiste.fertig .kiste-nr { background: var(--linie); color: var(--leise); }
+
+.kiste-text { flex: 1; min-width: 0; }
+
+.kiste-titel { font-size: 15px; overflow-wrap: anywhere; }
+.kiste.fertig .kiste-titel { color: var(--leise); }
+
+.kiste-meta {
+  margin-top: 2px;
+  font-size: 12.5px;
+  color: var(--leise);
+  overflow-wrap: anywhere;
+}
+
+.kiste-meta mark {
+  background: rgba(233, 168, 58, .32);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.haken {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  margin: 0 12px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1.8px solid var(--linie);
+  color: transparent;
+  transition: background .14s ease, border-color .14s ease;
+}
+
+.kiste.fertig .haken {
+  border-color: var(--ein);
+  background: var(--ein);
+  color: #fff;
+}
+
+.haken svg {
+  width: 16px; height: 16px;
+  fill: none; stroke: currentColor;
+  stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round;
+}
+
+.zerbrechlich {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: rgba(176, 67, 44, .13);
+  color: var(--aus);
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Kisten-Blatt */
+.k-kopf { display: flex; align-items: center; gap: 12px; }
+.k-kopf h2 { margin: 0; }
+.k-sachen { margin: 14px 0 0; padding: 0; list-style: none; }
+
+.k-sachen li {
+  padding: 9px 0;
+  border-top: 1px solid var(--linie);
+  font-size: 15px;
+}
+
+.k-sachen li:first-child { border-top: 0; }
+.k-sachen .kat { margin-top: 1px; color: var(--leise); font-size: 12.5px; }
+
+.k-text {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--karte);
+  color: var(--leise);
+  font-size: 13.5px;
+}
+
+/* 6) Overlays -------------------------------------------------------------- */
 .overlay {
   position: fixed;
   inset: 0;
@@ -452,7 +663,7 @@ main {
 #einrichten .glas { display: block; width: 64px; height: 64px; margin: 0 auto 18px; border-radius: 16px; }
 #einrichten h2 { text-align: center; }
 
-/* 6) Hinweise -------------------------------------------------------------- */
+/* 7) Hinweise -------------------------------------------------------------- */
 .hinweis {
   flex: none;
   padding: 9px var(--seite);
@@ -503,7 +714,28 @@ main {
       </button>
     </span>
   </div>
-  <div class="saldo zahl" id="saldo" aria-live="polite">—</div>
+  <div class="reiter" id="reiter" role="tablist" aria-label="Bereich">
+    <button type="button" role="tab" data-bereich="spar" aria-selected="true">Sparglas</button>
+    <button type="button" role="tab" data-bereich="kisten" aria-selected="false">Kisten</button>
+  </div>
+
+  <div id="kopf-spar">
+    <div class="saldo zahl" id="saldo" aria-live="polite">—</div>
+  </div>
+
+  <div id="kopf-kisten" class="versteckt">
+    <div class="kzahl zahl" id="kisten-zahl" aria-live="polite">—</div>
+    <div class="balken"><i id="kisten-balken"></i></div>
+    <input id="suche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
+           autocapitalize="none" spellcheck="false" placeholder="Wonach suchst du?"
+           aria-label="Kisten durchsuchen">
+    <div class="kfilter" id="kfilter">
+      <button type="button" data-filter="alle" aria-pressed="true">Alle</button>
+      <button type="button" data-filter="offen" aria-pressed="false">Offen</button>
+      <button type="button" data-filter="fertig" aria-pressed="false">Ausgepackt</button>
+    </div>
+  </div>
+
   <div class="stand" id="stand"></div>
   <div class="laden" id="laden" aria-hidden="true"></div>
 </header>
@@ -513,9 +745,10 @@ main {
 <main id="liste-bereich">
   <div class="zieher" id="zieher" aria-hidden="true"></div>
   <div id="liste"></div>
+  <div id="kisten-liste" class="versteckt"></div>
 </main>
 
-<div class="aktionen">
+<div class="aktionen" id="aktionen">
   <button class="tat" id="btn-ein">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Einzahlen
   </button>
@@ -579,6 +812,22 @@ main {
   </div>
 </div>
 
+<!-- Kiste -->
+<div class="overlay" id="kiste" role="dialog" aria-modal="true" aria-labelledby="kiste-titel">
+  <div class="blatt">
+    <div class="griff"></div>
+    <div class="k-kopf">
+      <span class="kiste-nr" id="kiste-nr">—</span>
+      <h2 id="kiste-titel">Kiste</h2>
+    </div>
+    <p class="hilfe" id="kiste-meta"></p>
+    <ul class="k-sachen" id="kiste-sachen"></ul>
+    <div class="k-text versteckt" id="kiste-text"></div>
+    <button class="absenden" id="btn-kiste-status">Als ausgepackt markieren</button>
+    <button class="abbrechen" data-schliessen>Schließen</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -596,7 +845,10 @@ const SPEICHER = {
   code: "sparglas.code",
   wer: "sparglas.wer",
   stand: "sparglas.stand",
-  mock: "sparglas.mockdaten"
+  mock: "sparglas.mockdaten",
+  kisten: "sparglas.kisten",
+  bereich: "sparglas.bereich",
+  mockKisten: "sparglas.mockkisten"
 };
 
 /* --- kleine Helfer -------------------------------------------------------- */
@@ -699,10 +951,17 @@ function zeitpunktText(iso) {
 
 /* --- Zustand -------------------------------------------------------------- */
 let zustand = null;      // { startSaldo, saldo, buchungen: [...] }
-let geladenAm = null;    // ISO-Zeitpunkt des letzten erfolgreichen Ladens
+let standGeladenAm = null;  // ISO-Zeitpunkt des letzten Sparstand-Ladens
 let laeuft = false;      // gerade ein Request unterwegs?
 let modus = "ein";       // aktueller Buchungs-Modus im Blatt
 let laufendeId = null;   // UUID der Buchung im Blatt (überlebt Fehlversuche)
+
+let bereich = "spar";       // sichtbarer Reiter: "spar" oder "kisten"
+let kisten = null;          // { kisten: [...], sachen: [...] }
+let kistenGeladenAm = null; // ISO-Zeitpunkt des letzten Kisten-Ladens
+let suchtext = "";          // Inhalt des Suchfelds
+let kFilter = "alle";       // "alle" | "offen" | "fertig"
+let offeneKiste = null;     // Nummer der Kiste im Blatt
 
 /* --- Server-Zugriff ------------------------------------------------------- */
 async function ruf(nutzlast) {
@@ -734,6 +993,9 @@ async function ruf(nutzlast) {
 function mockRuf(nutzlast) {
   return new Promise((fertig) => {
     setTimeout(() => {
+      if (nutzlast.action === "kisten" || nutzlast.action === "kiste") {
+        return fertig(mockKisten(nutzlast));
+      }
       const daten = lies(SPEICHER.mock, null) || mockStart();
       if (nutzlast.action === "add") {
         const betrag = Number(nutzlast.betrag);
@@ -772,6 +1034,48 @@ function mockStart() {
   return daten;
 }
 
+function mockKisten(nutzlast) {
+  const daten = lies(SPEICHER.mockKisten, null) || mockKistenStart();
+  if (nutzlast.action === "kiste") {
+    const nr = Number(nutzlast.nr);
+    for (const k of daten.kisten) if (k.nr === nr) k.status = String(nutzlast.status || "");
+    schreibe(SPEICHER.mockKisten, daten);
+  }
+  return { ok: true, kisten: daten.kisten, sachen: daten.sachen };
+}
+
+function mockKistenStart() {
+  const daten = {
+    kisten: [
+      { nr: 3,  raum: "Schlafzimmer",  notiz: "", status: "", text: "Box 3 Schlafzimmer, Bettwäsche und Handtücher." },
+      { nr: 12, raum: "Küche",         notiz: "", status: "ausgepackt", text: "Box 12 Küche, Töpfe und Pfannen, zwei Auflaufformen." },
+      { nr: 21, raum: "Arbeitszimmer", notiz: "zuerst auspacken", status: "", text: "Box 21 Arbeitszimmer, Kabel, Ladegeräte, Bohrmaschine mit Zubehör." },
+      { nr: 47, raum: "Küche",         notiz: "", status: "", text: "Box 47 Küche, Wasserkocher, Kaffeemühle und die guten Gläser." },
+      { nr: 85, raum: "Keller",        notiz: "Küchensachen", status: "", text: "Box 85 Küche aus dem Keller, elektrische Wärmeplatte, Kontaktgrill von Tefal, große Käseglocke, Tortenanrichteteller und großes Grillbesteck." }
+    ],
+    sachen: [
+      { nr: 3,  sache: "Bettwäsche",              kategorie: "Textil",   zerbrechlich: false },
+      { nr: 3,  sache: "Handtücher",              kategorie: "Textil",   zerbrechlich: false },
+      { nr: 12, sache: "Töpfe",                   kategorie: "Kochen",   zerbrechlich: false },
+      { nr: 12, sache: "Pfannen",                 kategorie: "Kochen",   zerbrechlich: false },
+      { nr: 12, sache: "Auflaufformen",           kategorie: "Kochen",   zerbrechlich: true },
+      { nr: 21, sache: "Kabel",                   kategorie: "Technik",  zerbrechlich: false },
+      { nr: 21, sache: "Ladegeräte",              kategorie: "Technik",  zerbrechlich: false },
+      { nr: 21, sache: "Bohrmaschine mit Zubehör", kategorie: "Werkzeug", zerbrechlich: false },
+      { nr: 47, sache: "Wasserkocher",            kategorie: "Küche",    zerbrechlich: false },
+      { nr: 47, sache: "Kaffeemühle",             kategorie: "Küche",    zerbrechlich: false },
+      { nr: 47, sache: "Gläser",                  kategorie: "Geschirr", zerbrechlich: true },
+      { nr: 85, sache: "elektrische Wärmeplatte", kategorie: "Küche",    zerbrechlich: false },
+      { nr: 85, sache: "Kontaktgrill von Tefal",  kategorie: "Küche",    zerbrechlich: false },
+      { nr: 85, sache: "große Käseglocke",        kategorie: "Geschirr", zerbrechlich: true },
+      { nr: 85, sache: "Tortenanrichteteller",    kategorie: "Geschirr", zerbrechlich: true },
+      { nr: 85, sache: "großes Grillbesteck",     kategorie: "Küche",    zerbrechlich: false }
+    ]
+  };
+  schreibe(SPEICHER.mockKisten, daten);
+  return daten;
+}
+
 /* --- Laden & Buchen ------------------------------------------------------- */
 function ladeAnzeige(an) {
   laeuft = an;
@@ -805,13 +1109,14 @@ function uebernimm(antwort) {
     saldo: Number(antwort.saldo) || 0,
     buchungen: Array.isArray(antwort.buchungen) ? antwort.buchungen : []
   };
-  geladenAm = new Date().toISOString();
-  schreibe(SPEICHER.stand, { zustand: zustand, geladenAm: geladenAm });
+  standGeladenAm = new Date().toISOString();
+  schreibe(SPEICHER.stand, { zustand: zustand, geladenAm: standGeladenAm });
   zeichne();
 }
 
 function standHinweis(fehler) {
   const el = $("stand");
+  const geladenAm = bereich === "kisten" ? kistenGeladenAm : standGeladenAm;
   if (!geladenAm) {
     el.textContent = fehler ? "Kein Kontakt zum Sheet — bitte erneut aktualisieren." : "";
     return;
@@ -962,6 +1267,378 @@ function zeile(b) {
   return el;
 }
 
+/* --- Kisten --------------------------------------------------------------- */
+
+/**
+ * Text zum Vergleichen einebnen: klein schreiben, Umlaute entzerren
+ * („Küche“ → „kuche“). Die Länge bleibt dabei gleich — deshalb passen die
+ * Positionen aus indexOf auch auf den Originaltext, was markiere() braucht.
+ */
+function flach(text) {
+  const roh = String(text === null || text === undefined ? "" : text).toLowerCase();
+  try {
+    return roh.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  } catch (e) {
+    return roh;   // sehr alte Engines: dann eben ohne Umlaut-Einebnung
+  }
+}
+
+/** Steckt q in text? „ß“ und „ss“ gelten dabei als dasselbe. */
+function passt(text, q) {
+  if (!q) return true;
+  const t = flach(text);
+  if (t.indexOf(q) >= 0) return true;
+  return t.replace(/ß/g, "ss").indexOf(q.replace(/ß/g, "ss")) >= 0;
+}
+
+/** Fundstellen im Text hervorheben. Findet nichts → gibt den Text unverändert. */
+function markiere(text, q) {
+  const teil = document.createDocumentFragment();
+  const roh = String(text === null || text === undefined ? "" : text);
+  if (!q) { teil.append(roh); return teil; }
+
+  const eben = flach(roh);
+  let ab = 0;
+  let pos = eben.indexOf(q);
+  while (pos >= 0) {
+    if (pos > ab) teil.append(roh.slice(ab, pos));
+    const m = document.createElement("mark");
+    m.textContent = roh.slice(pos, pos + q.length);
+    teil.append(m);
+    ab = pos + q.length;
+    pos = eben.indexOf(q, ab);
+  }
+  teil.append(roh.slice(ab));
+  return teil;
+}
+
+function istFertig(k) {
+  return String((k && k.status) || "") === "ausgepackt";
+}
+
+function sachenDerKiste(nr) {
+  return kisten ? kisten.sachen.filter(function (s) { return s.nr === nr; }) : [];
+}
+
+async function ladeKisten(still) {
+  const code = lies(SPEICHER.code, "");
+  if (!code) return;
+  if (!still) ladeAnzeige(true);
+  try {
+    const antwort = await ruf({ action: "kisten", code: code });
+    if (antwort && antwort.ok) {
+      uebernimmKisten(antwort);
+    } else if (antwort && antwort.error === "code") {
+      codeAbgelehnt();
+    } else {
+      standHinweis(true);
+    }
+  } catch (e) {
+    standHinweis(true);
+  } finally {
+    ladeAnzeige(false);
+  }
+}
+
+function uebernimmKisten(antwort) {
+  kisten = {
+    kisten: Array.isArray(antwort.kisten) ? antwort.kisten : [],
+    sachen: Array.isArray(antwort.sachen) ? antwort.sachen : []
+  };
+  kistenGeladenAm = new Date().toISOString();
+  schreibe(SPEICHER.kisten, { kisten: kisten, geladenAm: kistenGeladenAm });
+  zeichneKisten();
+  if (bereich === "kisten") standHinweis(false);
+}
+
+function gruppenKopf(titel, rechts) {
+  const kopf = document.createElement("div");
+  kopf.className = "monat";
+  const links = document.createElement("span");
+  links.textContent = titel;
+  const seite = document.createElement("span");
+  seite.className = "monat-summe";
+  seite.textContent = rechts || "";
+  kopf.append(links, seite);
+  return kopf;
+}
+
+function leerText(text) {
+  const el = document.createElement("div");
+  el.className = "leer";
+  el.textContent = text;
+  return el;
+}
+
+function zeichneKisten() {
+  const zahl = $("kisten-zahl");
+  const ziel = $("kisten-liste");
+
+  if (!kisten) {
+    zahl.textContent = "—";
+    $("kisten-balken").style.width = "0%";
+    ziel.replaceChildren();
+    return;
+  }
+
+  const alle = kisten.kisten.slice().sort(function (a, b) { return a.nr - b.nr; });
+  const fertige = alle.filter(istFertig).length;
+
+  zahl.replaceChildren();
+  if (alle.length) {
+    zahl.append(String(fertige) + " ");
+    const rest = document.createElement("small");
+    rest.textContent = "von " + alle.length + " ausgepackt";
+    zahl.append(rest);
+  } else {
+    zahl.textContent = "—";
+  }
+  $("kisten-balken").style.width = alle.length
+    ? Math.round(fertige / alle.length * 100) + "%"
+    : "0%";
+
+  const q = flach(suchtext.trim());
+  const gefiltert = alle.filter(function (k) {
+    if (kFilter === "offen" && istFertig(k)) return false;
+    if (kFilter === "fertig" && !istFertig(k)) return false;
+    if (!q) return true;
+    if (String(k.nr) === q) return true;
+    if (passt(k.raum, q) || passt(k.notiz, q) || passt(k.text, q)) return true;
+    return sachenDerKiste(k.nr).some(function (sa) { return passt(sa.sache, q); });
+  });
+
+  if (!alle.length) {
+    ziel.replaceChildren(leerText("Noch keine Kisten im Sheet. Sobald die Aufnahmen eingelesen sind, stehen sie hier."));
+    return;
+  }
+  if (!gefiltert.length) {
+    ziel.replaceChildren(leerText(q
+      ? "Nichts gefunden für „" + suchtext.trim() + "“."
+      : "In dieser Ansicht ist gerade nichts."));
+    return;
+  }
+
+  const teil = document.createDocumentFragment();
+
+  if (q) {
+    teil.append(gruppenKopf(gefiltert.length === 1 ? "1 Treffer" : gefiltert.length + " Treffer", ""));
+    const kasten = document.createElement("div");
+    kasten.className = "gruppe";
+    for (const k of gefiltert) kasten.appendChild(kistenZeile(k, q));
+    teil.append(kasten);
+  } else {
+    // Ohne Suche nach Zielraum gruppieren — so packt man ein Zimmer am Stück aus.
+    const namen = [];
+    const nachRaum = Object.create(null);
+    for (const k of gefiltert) {
+      const name = k.raum || "Ohne Raum";
+      if (!nachRaum[name]) { nachRaum[name] = []; namen.push(name); }
+      nachRaum[name].push(k);
+    }
+    namen.sort(function (a, b) { return a.localeCompare(b, "de"); });
+    for (const name of namen) {
+      const liste = nachRaum[name];
+      const offen = liste.filter(function (k) { return !istFertig(k); }).length;
+      teil.append(gruppenKopf(name, offen ? offen + " offen" : "fertig"));
+      const kasten = document.createElement("div");
+      kasten.className = "gruppe";
+      for (const k of liste) kasten.appendChild(kistenZeile(k, ""));
+      teil.append(kasten);
+    }
+  }
+
+  ziel.replaceChildren(teil);
+}
+
+function kistenZeile(k, q) {
+  const fertig = istFertig(k);
+
+  const el = document.createElement("div");
+  el.className = "kiste" + (fertig ? " fertig" : "");
+
+  const haupt = document.createElement("button");
+  haupt.type = "button";
+  haupt.className = "kiste-haupt";
+  haupt.dataset.nr = String(k.nr);
+  haupt.setAttribute("aria-label", "Kiste " + k.nr + " öffnen");
+
+  const nr = document.createElement("span");
+  nr.className = "kiste-nr";
+  nr.textContent = String(k.nr);
+
+  const text = document.createElement("div");
+  text.className = "kiste-text";
+
+  // Oben steht der Inhalt, darunter der Raum: ohne Suche gruppiert die Liste
+  // ohnehin nach Raum, und gesucht wird immer nach dem Gegenstand.
+  const titel = document.createElement("div");
+  titel.className = "kiste-titel";
+  const sachen = sachenDerKiste(k.nr);
+  const treffer = q ? sachen.filter(function (sa) { return passt(sa.sache, q); }) : [];
+  const quelle = treffer.length ? treffer : sachen;
+  const zeigen = quelle.slice(0, 3);
+  if (zeigen.length) {
+    zeigen.forEach(function (sa, i) {
+      if (i) titel.append(", ");
+      titel.append(markiere(sa.sache, q));
+    });
+    if (quelle.length > zeigen.length) titel.append(" +" + (quelle.length - zeigen.length));
+  } else if (k.notiz) {
+    titel.append(markiere(k.notiz, q));
+  } else {
+    titel.append(markiere(k.raum || "Kiste " + k.nr, q));
+  }
+
+  const meta = document.createElement("div");
+  meta.className = "kiste-meta";
+  const unten = [];
+  if (zeigen.length || k.notiz) unten.push(k.raum || "Ohne Raum");
+  if (zeigen.length && k.notiz) unten.push(k.notiz);
+  unten.forEach(function (t, i) {
+    if (i) meta.append(" · ");
+    meta.append(markiere(t, q));
+  });
+
+  text.append(titel, meta);
+  haupt.append(nr, text);
+
+  const haken = document.createElement("button");
+  haken.type = "button";
+  haken.className = "haken";
+  haken.dataset.haken = String(k.nr);
+  haken.setAttribute("aria-pressed", String(fertig));
+  haken.setAttribute("aria-label", "Kiste " + k.nr + (fertig ? " wieder als offen" : " als ausgepackt") + " markieren");
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("aria-hidden", "true");
+  const pfad = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  pfad.setAttribute("d", "M5 13l4 4 10-10");
+  svg.append(pfad);
+  haken.append(svg);
+
+  el.append(haupt, haken);
+  return el;
+}
+
+/** Füllt das Kisten-Blatt; öffnen macht kisteOeffnen. */
+function kisteZeichnen(nr) {
+  const k = kisten && kisten.kisten.find(function (x) { return x.nr === nr; });
+  if (!k) return false;
+
+  $("kiste-nr").textContent = String(k.nr);
+  $("kiste-titel").textContent = k.raum || "Ohne Raum";
+
+  const meta = [];
+  if (k.notiz) meta.push(k.notiz);
+  meta.push(istFertig(k) ? "ausgepackt" : "noch zu");
+  $("kiste-meta").textContent = meta.join(" · ");
+
+  const liste = $("kiste-sachen");
+  liste.replaceChildren();
+  for (const sa of sachenDerKiste(nr)) {
+    const li = document.createElement("li");
+    li.append(sa.sache);
+    if (sa.zerbrechlich) {
+      const z = document.createElement("span");
+      z.className = "zerbrechlich";
+      z.textContent = "zerbrechlich";
+      li.append(z);
+    }
+    // Kategorie nur zeigen, wenn sie mehr sagt als der Raum darüber.
+    if (sa.kategorie && sa.kategorie !== (k.raum || "")) {
+      const kat = document.createElement("div");
+      kat.className = "kat";
+      kat.textContent = sa.kategorie;
+      li.append(kat);
+    }
+    liste.append(li);
+  }
+
+  const txt = $("kiste-text");
+  txt.textContent = k.text || "";
+  txt.classList.toggle("versteckt", !k.text);
+
+  $("btn-kiste-status").textContent = istFertig(k)
+    ? "Wieder als offen markieren"
+    : "Als ausgepackt markieren";
+  return true;
+}
+
+function kisteOeffnen(nr) {
+  if (!kisteZeichnen(nr)) return;
+  offeneKiste = nr;
+  overlayAuf("kiste");
+}
+
+/**
+ * Auf- und Zubuchen. Die Anzeige springt sofort um und wird nur zurückgedreht,
+ * wenn das Sheet die Änderung ablehnt — sonst wäre das Abhaken beim Auspacken
+ * bei jedem Antippen ein bis drei Sekunden zäh.
+ */
+async function kisteUmschalten(nr) {
+  const k = kisten && kisten.kisten.find(function (x) { return x.nr === nr; });
+  if (!k) return;
+
+  const vorher = k.status;
+  const neu = istFertig(k) ? "" : "ausgepackt";
+  const zurueck = function () {
+    k.status = vorher;
+    zeichneKisten();
+    if (offeneKiste === nr) kisteZeichnen(nr);
+  };
+
+  k.status = neu;
+  zeichneKisten();
+  if (offeneKiste === nr) kisteZeichnen(nr);
+
+  try {
+    const antwort = await ruf({
+      action: "kiste",
+      code: lies(SPEICHER.code, ""),
+      nr: nr,
+      status: neu
+    });
+    if (antwort && antwort.ok) {
+      uebernimmKisten(antwort);
+      if (offeneKiste === nr) kisteZeichnen(nr);
+    } else if (antwort && antwort.error === "code") {
+      zurueck();
+      codeAbgelehnt();
+    } else {
+      zurueck();
+      toast("Nicht gespeichert — bitte erneut versuchen.");
+    }
+  } catch (e) {
+    zurueck();
+    toast("Nicht gespeichert — bitte erneut versuchen.");
+  }
+}
+
+/** Reiter umschalten. laden=false beim Start, dort lädt aktualisiere(). */
+function setzeBereich(neu, laden) {
+  bereich = neu === "kisten" ? "kisten" : "spar";
+  schreibe(SPEICHER.bereich, bereich);
+
+  const istK = bereich === "kisten";
+  for (const b of $("reiter").querySelectorAll("button")) {
+    b.setAttribute("aria-selected", String(b.dataset.bereich === bereich));
+  }
+  $("kopf-spar").classList.toggle("versteckt", istK);
+  $("kopf-kisten").classList.toggle("versteckt", !istK);
+  $("liste").classList.toggle("versteckt", istK);
+  $("kisten-liste").classList.toggle("versteckt", !istK);
+  $("aktionen").classList.toggle("versteckt", istK);
+  $("liste-bereich").scrollTop = 0;
+  standHinweis(false);
+
+  if (laden !== false && istK && !kisten && lies(SPEICHER.code, "")) ladeKisten(false);
+}
+
+/** Aktualisiert, was gerade sichtbar ist. */
+function aktualisiere(still) {
+  return bereich === "kisten" ? ladeKisten(still) : ladeStand(still);
+}
+
 /* --- Overlays ------------------------------------------------------------- */
 function overlayAuf(id) {
   $(id).classList.add("offen");
@@ -1022,7 +1699,41 @@ function toast(text) {
 $("btn-ein").addEventListener("click", () => buchenOeffnen("ein"));
 $("btn-aus").addEventListener("click", () => buchenOeffnen("aus"));
 $("btn-buchen").addEventListener("click", buche);
-$("btn-neu").addEventListener("click", () => ladeStand(false));
+$("btn-neu").addEventListener("click", () => aktualisiere(false));
+
+$("reiter").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-bereich]");
+  if (knopf) setzeBereich(knopf.dataset.bereich, true);
+});
+
+$("kfilter").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-filter]");
+  if (!knopf) return;
+  kFilter = knopf.dataset.filter;
+  for (const b of $("kfilter").querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset.filter === kFilter));
+  }
+  zeichneKisten();
+});
+
+// „search“ fängt zusätzlich das kleine X im Suchfeld ab.
+for (const ereignis of ["input", "search"]) {
+  $("suche").addEventListener(ereignis, () => {
+    suchtext = $("suche").value;
+    zeichneKisten();
+  });
+}
+
+$("kisten-liste").addEventListener("click", (e) => {
+  const haken = e.target.closest("button[data-haken]");
+  if (haken) { kisteUmschalten(Number(haken.dataset.haken)); return; }
+  const zeile = e.target.closest("button[data-nr]");
+  if (zeile) kisteOeffnen(Number(zeile.dataset.nr));
+});
+
+$("btn-kiste-status").addEventListener("click", () => {
+  if (offeneKiste !== null) kisteUmschalten(offeneKiste);
+});
 
 $("betrag").addEventListener("input", () => {
   const wert = betragLesen($("betrag").value);
@@ -1035,13 +1746,13 @@ for (const el of document.querySelectorAll("[data-schliessen]")) {
   el.addEventListener("click", () => overlayZu(el.closest(".overlay").id));
 }
 
-for (const id of ["buchen", "menu"]) {
+for (const id of ["buchen", "menu", "kiste"]) {
   $(id).addEventListener("click", (e) => { if (e.target.id === id) overlayZu(id); });
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  for (const id of ["buchen", "menu"]) overlayZu(id);
+  for (const id of ["buchen", "menu", "kiste"]) overlayZu(id);
 });
 
 for (const feld of [$("betrag"), $("kommentar")]) {
@@ -1121,7 +1832,7 @@ $("btn-code-neu").addEventListener("click", () => {
     if (!aktiv) return;
     aktiv = false;
     anzeige.style.height = "0px";
-    if (weg >= 56) ladeStand(false);
+    if (weg >= 56) aktualisiere(false);
   }, { passive: true });
 })();
 
@@ -1149,19 +1860,28 @@ if (window.visualViewport) {
   const zwischenspeicher = lies(SPEICHER.stand, null);
   if (zwischenspeicher && zwischenspeicher.zustand) {
     zustand = zwischenspeicher.zustand;
-    geladenAm = zwischenspeicher.geladenAm;
+    standGeladenAm = zwischenspeicher.geladenAm;
     zeichne();
   }
+
+  const kistenSpeicher = lies(SPEICHER.kisten, null);
+  if (kistenSpeicher && kistenSpeicher.kisten) {
+    kisten = kistenSpeicher.kisten;
+    kistenGeladenAm = kistenSpeicher.geladenAm;
+    zeichneKisten();
+  }
+
+  setzeBereich(lies(SPEICHER.bereich, "spar"), false);
 
   if (!lies(SPEICHER.code, "")) {
     einrichtenOeffnen("");
   } else {
-    ladeStand(false);
+    aktualisiere(false);
   }
 
   // Beim Zurückkehren zur App frisch laden.
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && lies(SPEICHER.code, "")) ladeStand(true);
+    if (document.visibilityState === "visible" && lies(SPEICHER.code, "")) aktualisiere(true);
   });
 
   if ("serviceWorker" in navigator && location.protocol.indexOf("http") === 0) {
