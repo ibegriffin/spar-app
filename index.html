@@ -27,6 +27,12 @@
 :root {
   --gruen-1: #1e7a60;
   --gruen-2: #0d4a3c;
+  /* Akzent des sichtbaren Bereichs: Kopf, Knöpfe, Markierungen. Vorgabe = Sparglas-Grün,
+     body[data-bereich] schaltet auf Kisten-Blau bzw. Gewürze-Bernstein um. */
+  --akzent-1: var(--gruen-1);
+  --akzent-2: var(--gruen-2);
+  --akzent-knopf: var(--gruen-1);
+  --akzent-text: var(--ein);
   --ein: #0f6b46;
   --aus: #b0432c;
   --gold: #e9a83a;
@@ -44,6 +50,26 @@
   --oben: env(safe-area-inset-top);
   --unten: env(safe-area-inset-bottom);
   --seite: max(16px, env(safe-area-inset-left));
+}
+
+body[data-bereich="kisten"] {
+  --akzent-1: #2e5c9a;
+  --akzent-2: #16345e;
+  --akzent-knopf: #2e5c9a;
+  --akzent-text: #2b5691;
+}
+
+body[data-bereich="gewuerze"] {
+  --akzent-1: #a85a18;
+  --akzent-2: #62300d;
+  --akzent-knopf: #a85a18;
+  --akzent-text: #9a5114;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root { --akzent-knopf: #1b6b54; --akzent-text: #4cc38a; }
+  body[data-bereich="kisten"] { --akzent-knopf: #27507f; --akzent-text: #82b4f2; }
+  body[data-bereich="gewuerze"] { --akzent-knopf: #8a4a14; --akzent-text: #f0a75c; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -112,7 +138,7 @@ button {
   flex: none;
   position: relative;
   padding: calc(var(--oben) + 14px) var(--seite) 20px;
-  background: linear-gradient(160deg, var(--gruen-1), var(--gruen-2));
+  background: linear-gradient(160deg, var(--akzent-1), var(--akzent-2));
   color: #fff;
   z-index: 2;
 }
@@ -303,7 +329,7 @@ main {
   font-size: 16.5px;
   font-weight: 600;
   color: #fff;
-  background: var(--gruen-1);
+  background: var(--akzent-knopf);
   transition: transform .12s ease, filter .12s ease;
 }
 
@@ -312,7 +338,6 @@ main {
 .tat svg { width: 19px; height: 19px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
 
 @media (prefers-color-scheme: dark) {
-  .tat { background: #1b6b54; }
   .tat.raus { background: #7c3421; }
 }
 
@@ -329,6 +354,10 @@ main {
 }
 
 .reiter button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   padding: 7px 4px;
   border-radius: 8px;
   font-size: 14px;
@@ -336,6 +365,17 @@ main {
   color: #fff;
   opacity: .8;
   transition: background .16s ease, opacity .16s ease;
+}
+
+.reiter svg {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* Die gewaehlte Pille muss im gruenen Kopf heller sein als der Grund — im
@@ -484,7 +524,7 @@ main {
   text-align: left;
 }
 
-.kiste-haupt:active { background: rgba(30, 122, 96, .07); }
+.kiste-haupt:active { background: color-mix(in srgb, var(--akzent-1) 7%, transparent); }
 
 .kiste-nr {
   flex: none;
@@ -495,7 +535,7 @@ main {
   place-items: center;
   border-radius: 10px;
   background: var(--bg);
-  color: var(--ein);
+  color: var(--akzent-text);
   font-size: 16px;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
@@ -505,7 +545,7 @@ main {
 
 /* Im Auswahl-Modus bedeutet der Kreis „ausgewählt“, nicht „ausgepackt“ —
    sonst sähen bereits ausgepackte Kisten wie angehakte aus. */
-.kiste.gewaehlt { background: rgba(30, 122, 96, .09); }
+.kiste.gewaehlt { background: color-mix(in srgb, var(--akzent-1) 9%, transparent); }
 
 #kisten-liste.waehlt .kiste.fertig .haken {
   border-color: var(--linie);
@@ -514,8 +554,8 @@ main {
 }
 
 #kisten-liste.waehlt .kiste.gewaehlt .haken {
-  border-color: var(--gruen-1);
-  background: var(--gruen-1);
+  border-color: var(--akzent-1);
+  background: var(--akzent-1);
   color: #fff;
 }
 
@@ -601,12 +641,8 @@ main {
 }
 
 .aleiste .neben { background: var(--bg); color: var(--text); }
-.aleiste .haupt { background: var(--gruen-1); color: #fff; }
+.aleiste .haupt { background: var(--akzent-knopf); color: #fff; }
 .aleiste .haupt:disabled { opacity: .4; }
-
-@media (prefers-color-scheme: dark) {
-  .aleiste .haupt { background: #1b6b54; }
-}
 
 /* Kisten-Blatt */
 .k-kopf { display: flex; align-items: center; gap: 12px; }
@@ -630,7 +666,7 @@ main {
 }
 
 .ortwahl button[aria-pressed="true"] {
-  background: var(--gruen-1);
+  background: var(--akzent-knopf);
   color: #fff;
 }
 
@@ -700,18 +736,22 @@ main {
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: var(--gruen-1);
+  background: var(--akzent-knopf);
   color: #fff;
-  font-size: 24px;
-  font-weight: 500;
-  line-height: 1;
+}
+
+/* SVG statt Text-„+“: ein Schriftzeichen sitzt nie exakt mittig im Kreis. */
+.besorgen-plus svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
 }
 
 .besorgen-plus:active { filter: brightness(1.1); }
-
-@media (prefers-color-scheme: dark) {
-  .besorgen-plus { background: #1b6b54; }
-}
 
 .wahl.drei { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
 .wahl.drei button { padding: 12px 4px; font-size: 15px; }
@@ -856,7 +896,7 @@ main {
   appearance: none;
 }
 
-.feld input:focus { border-color: var(--gruen-1); outline: none; }
+.feld input:focus { border-color: var(--akzent-1); outline: none; }
 
 #betrag {
   font-size: 30px;
@@ -885,9 +925,9 @@ main {
 }
 
 .wahl button[aria-pressed="true"] {
-  border-color: var(--gruen-1);
-  background: color-mix(in srgb, var(--gruen-1) 12%, var(--karte));
-  color: var(--ein);
+  border-color: var(--akzent-1);
+  background: color-mix(in srgb, var(--akzent-1) 12%, var(--karte));
+  color: var(--akzent-text);
 }
 
 .absenden {
@@ -895,7 +935,7 @@ main {
   min-height: 52px;
   margin-top: 4px;
   border-radius: 13px;
-  background: var(--gruen-1);
+  background: var(--akzent-knopf);
   color: #fff;
   font-size: 16.5px;
   font-weight: 650;
@@ -985,9 +1025,15 @@ main {
     </span>
   </div>
   <div class="reiter" id="reiter" role="tablist" aria-label="Bereich">
-    <button type="button" role="tab" data-bereich="spar" aria-selected="true">Sparglas</button>
-    <button type="button" role="tab" data-bereich="kisten" aria-selected="false">Kisten</button>
-    <button type="button" role="tab" data-bereich="gewuerze" aria-selected="false">Gewürze</button>
+    <button type="button" role="tab" data-bereich="spar" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8M7 7h10M7 7c-1.5 1.5-2 3-2 5v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6c0-2-.5-3.5-2-5"/><path d="M9.5 14.5h5M12 12v5"/></svg>Sparglas
+    </button>
+    <button type="button" role="tab" data-bereich="kisten" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/></svg>Kisten
+    </button>
+    <button type="button" role="tab" data-bereich="gewuerze" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 0-14 5-14 12 0 2 1 3 3 3 7 0 12-6 11-15z"/><path d="M4 20l8-8"/></svg>Gewürze
+    </button>
   </div>
 
   <div id="kopf-spar">
@@ -2367,7 +2413,7 @@ function gewuerzZeile(g, q) {
     plus.className = "besorgen-plus";
     plus.dataset.gplus = String(g.nr);
     plus.setAttribute("aria-label", g.name + " als gekauft in den Vorrat übernehmen");
-    plus.textContent = "+";
+    plus.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
     el.append(plus);
   }
   return el;
@@ -2526,6 +2572,8 @@ function setzeBereich(neu, laden) {
 
   const istK = bereich === "kisten";
   const istG = bereich === "gewuerze";
+  document.body.dataset.bereich = bereich;
+  themeFarbe();
   for (const b of $("reiter").querySelectorAll("button")) {
     b.setAttribute("aria-selected", String(b.dataset.bereich === bereich));
   }
@@ -2546,6 +2594,15 @@ function setzeBereich(neu, laden) {
     if (istG && !gewuerze) ladeGewuerze(false);
   }
 }
+
+/** iPhone-Statusleiste in der Akzentfarbe des Bereichs (theme-color folgt dem Kopf). */
+function themeFarbe() {
+  const stil = getComputedStyle(document.body);
+  const dunkel = matchMedia("(prefers-color-scheme: dark)").matches;
+  const farbe = stil.getPropertyValue(dunkel ? "--akzent-2" : "--akzent-1").trim();
+  for (const m of document.querySelectorAll('meta[name="theme-color"]')) m.setAttribute("content", farbe);
+}
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeFarbe);
 
 /** Aktualisiert, was gerade sichtbar ist. */
 function aktualisiere(still) {
