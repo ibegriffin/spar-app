@@ -690,6 +690,31 @@ main {
 .kiste.aufgebraucht .kiste-nr { background: var(--linie); color: var(--leise); }
 .kiste.aufgebraucht .kiste-titel { color: var(--leise); }
 
+/* Plus am Zeilenende auf der Besorgen-Liste: holt die Position in den Vorrat. */
+.plus {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  margin: 0 10px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gruen-1);
+  color: #fff;
+  font-size: 24px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.plus:active { filter: brightness(1.1); }
+
+@media (prefers-color-scheme: dark) {
+  .plus { background: #1b6b54; }
+}
+
+.wahl.drei { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+.wahl.drei button { padding: 12px 4px; font-size: 15px; }
+
 .kiste-meta .zut {
   display: block;
   margin-top: 1px;
@@ -993,7 +1018,10 @@ main {
   </div>
 
   <div id="kopf-gewuerze" class="versteckt">
-    <div class="kzahl zahl" id="gewuerze-zahl" aria-live="polite">—</div>
+    <div class="kzahl-zeile">
+      <div class="kzahl zahl" id="gewuerze-zahl" aria-live="polite">—</div>
+      <button type="button" class="waehlen" id="btn-gewuerz-neu">+ Neu</button>
+    </div>
     <div class="suchfeld">
       <input id="gsuche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
              autocapitalize="none" spellcheck="false" placeholder="Gewürz, Marke oder Zutat"
@@ -1003,12 +1031,12 @@ main {
       </button>
     </div>
     <div class="kfilter" id="gfilter">
+      <button type="button" data-gfilter="besorgen" aria-pressed="false">Besorgen</button>
+      <span class="trenner" aria-hidden="true"></span>
       <button type="button" data-gfilter="alle" aria-pressed="true">Alle</button>
       <button type="button" data-gfilter="Mischung" aria-pressed="false">Mischungen</button>
       <button type="button" data-gfilter="Einzeln" aria-pressed="false">Einzeln</button>
       <button type="button" data-gfilter="Sonstiges" aria-pressed="false">Sonstiges</button>
-      <span class="trenner" aria-hidden="true"></span>
-      <button type="button" data-gfilter="leer" aria-pressed="false">Aufgebraucht</button>
     </div>
   </div>
 
@@ -1126,6 +1154,44 @@ main {
     <button type="button" class="option" data-setze="ort:lager">Ort: Lager</button>
     <button type="button" class="option" data-setze="ort:wohnung">Ort: Wohnung</button>
     <button type="button" class="option" data-setze="ort:">Ort wieder offen lassen</button>
+    <button class="abbrechen" data-schliessen>Abbrechen</button>
+  </div>
+</div>
+
+<!-- Gewürz neu anlegen -->
+<div class="overlay" id="gneu" role="dialog" aria-modal="true" aria-labelledby="gneu-titel">
+  <div class="blatt">
+    <div class="griff"></div>
+    <h2 id="gneu-titel">Neu anlegen</h2>
+    <p class="fehler versteckt" id="gneu-fehler"></p>
+    <div class="feld">
+      <label for="gneu-name">Name</label>
+      <input id="gneu-name" type="text" autocomplete="off" enterkeyhint="next" placeholder="z. B. Kreuzkümmel gemahlen">
+    </div>
+    <div class="feld">
+      <label for="gneu-hersteller">Hersteller (optional)</label>
+      <input id="gneu-hersteller" type="text" autocomplete="off" enterkeyhint="next" placeholder="z. B. Ankerkraut">
+    </div>
+    <div class="feld">
+      <label>Art</label>
+      <div class="wahl drei" id="gneu-typ">
+        <button type="button" data-typ="Mischung" aria-pressed="true">Mischung</button>
+        <button type="button" data-typ="Einzeln" aria-pressed="false">Einzeln</button>
+        <button type="button" data-typ="Sonstiges" aria-pressed="false">Sonstiges</button>
+      </div>
+    </div>
+    <div class="feld">
+      <label for="gneu-zutaten">Zutaten (optional)</label>
+      <input id="gneu-zutaten" type="text" autocomplete="off" enterkeyhint="done" placeholder="Komma-getrennt">
+    </div>
+    <div class="feld">
+      <label>Wohin?</label>
+      <div class="wahl" id="gneu-wohin">
+        <button type="button" data-wohin="vorrat" aria-pressed="true">In den Vorrat</button>
+        <button type="button" data-wohin="besorgen" aria-pressed="false">Auf Besorgen</button>
+      </div>
+    </div>
+    <button class="absenden" id="btn-gneu-anlegen">Anlegen</button>
     <button class="abbrechen" data-schliessen>Abbrechen</button>
   </div>
 </div>
@@ -1282,7 +1348,7 @@ let bereich = "spar";       // sichtbarer Reiter: "spar", "kisten" oder "gewuerz
 let gewuerze = null;        // Liste der Gewürze & Co.
 let gewuerzeGeladenAm = null;
 let gSuchtext = "";         // Suchfeld im Gewürze-Kopf
-let gFilter = "alle";       // "alle" | "Mischung" | "Einzeln" | "Sonstiges" | "leer"
+let gFilter = "alle";       // "besorgen" | "alle" | "Mischung" | "Einzeln" | "Sonstiges"
 let offenesGewuerz = null;  // nr der Position im Blatt
 let kisten = null;          // { kisten: [...], sachen: [...] }
 let kistenGeladenAm = null; // ISO-Zeitpunkt des letzten Kisten-Ladens
@@ -1330,7 +1396,8 @@ function mockRuf(nutzlast) {
           nutzlast.action === "kiste_loeschen" || nutzlast.action === "kiste") {
         return fertig(mockKisten(nutzlast));
       }
-      if (nutzlast.action === "gewuerze" || nutzlast.action === "gewuerz_setzen") {
+      if (nutzlast.action === "gewuerze" || nutzlast.action === "gewuerz_setzen" ||
+          nutzlast.action === "gewuerz_neu") {
         return fertig(mockGewuerze(nutzlast));
       }
       const daten = lies(SPEICHER.mock, null) || mockStart();
@@ -1445,8 +1512,21 @@ function mockGewuerze(nutzlast) {
     if (!g) return { ok: false, error: "unbekannt" };
     g.anzahl = Number(nutzlast.anzahl);
   }
+  let neueNr = null;
+  if (nutzlast.action === "gewuerz_neu") {
+    const name = String(nutzlast.name || "").trim();
+    if (!name) return { ok: false, error: "name" };
+    const doppelt = liste.find(function (x) {
+      return x.name.toLowerCase() === name.toLowerCase() &&
+        (x.hersteller || "").toLowerCase() === String(nutzlast.hersteller || "").toLowerCase();
+    });
+    if (doppelt) return { ok: false, error: "doppelt", nr: doppelt.nr };
+    neueNr = liste.reduce(function (m, x) { return Math.max(m, x.nr); }, 0) + 1;
+    liste.push({ nr: neueNr, name: name, hersteller: String(nutzlast.hersteller || ""), typ: nutzlast.typ || "Sonstiges",
+      anzahl: Number(nutzlast.anzahl) || 0, ort: "", zutaten: String(nutzlast.zutaten || ""), quelle: "", hinweis: "" });
+  }
   schreibe(SPEICHER.mockGewuerze, liste);
-  return { ok: true, gewuerze: liste };
+  return { ok: true, gewuerze: liste, nr: neueNr };
 }
 
 /* --- Laden & Buchen ------------------------------------------------------- */
@@ -2184,8 +2264,8 @@ function zeichneGewuerze() {
 
   const q = flach(gSuchtext.trim());
   const gefiltert = alle.filter(function (g) {
-    if (gFilter === "leer" && g.anzahl !== 0) return false;
-    if (gFilter !== "alle" && gFilter !== "leer" && g.typ !== gFilter) return false;
+    if (gFilter === "besorgen" && g.anzahl !== 0) return false;
+    if (gFilter !== "alle" && gFilter !== "besorgen" && g.typ !== gFilter) return false;
     if (!q) return true;
     return passt(g.name, q) || passt(g.hersteller, q) || passt(g.zutaten, q) || passt(g.hinweis, q);
   });
@@ -2197,7 +2277,9 @@ function zeichneGewuerze() {
   if (!gefiltert.length) {
     ziel.replaceChildren(leerText(q
       ? "Nichts gefunden für „" + gSuchtext.trim() + "“."
-      : "In dieser Ansicht ist gerade nichts."));
+      : gFilter === "besorgen"
+        ? "Nichts zu besorgen. Aufgebrauchtes landet hier — oder über „+ Neu“ anlegen."
+        : "In dieser Ansicht ist gerade nichts."));
     return;
   }
 
@@ -2214,7 +2296,7 @@ function zeichneGewuerze() {
       const liste = gefiltert.filter(function (g) { return (g.typ || "Sonstiges") === typ; });
       if (!liste.length) continue;
       const leer = liste.filter(function (g) { return g.anzahl === 0; }).length;
-      teil.append(gruppenKopf(typText(typ), leer ? leer + " aufgebraucht" : String(liste.length)));
+      teil.append(gruppenKopf(typText(typ), leer ? leer + " zu besorgen" : String(liste.length)));
       const kasten = document.createElement("div");
       kasten.className = "gruppe";
       for (const g of liste) kasten.appendChild(gewuerzZeile(g, ""));
@@ -2259,7 +2341,7 @@ function gewuerzZeile(g, q) {
   meta.className = "kiste-meta";
   const oben = [];
   if (g.hersteller) oben.push(g.hersteller);
-  if (g.anzahl === 0) oben.push("aufgebraucht");
+  if (g.anzahl === 0) oben.push("zu besorgen");
   oben.forEach(function (t, i) {
     if (i) meta.append(" · ");
     meta.append(markiere(t, q));
@@ -2276,7 +2358,22 @@ function gewuerzZeile(g, q) {
   text.append(titel, meta);
   haupt.append(nr, text);
   el.append(haupt);
+
+  // Auf der Besorgen-Liste (Anzahl 0) holt ein Plus die Position in den Vorrat.
+  if (g.anzahl === 0) {
+    const plus = document.createElement("button");
+    plus.type = "button";
+    plus.className = "plus";
+    plus.dataset.gplus = String(g.nr);
+    plus.setAttribute("aria-label", g.name + " als gekauft in den Vorrat übernehmen");
+    plus.textContent = "+";
+    el.append(plus);
+  }
   return el;
+}
+
+function packungenText(n) {
+  return n === 0 ? "zu besorgen" : packungen(n);
 }
 
 function gewuerzZeichnen(nr) {
@@ -2290,7 +2387,7 @@ function gewuerzZeichnen(nr) {
   $("gewuerz-meta").textContent = meta.join(" · ");
 
   $("gewuerz-anzahl").textContent = String(g.anzahl);
-  $("gewuerz-anzahl-text").textContent = packungen(g.anzahl);
+  $("gewuerz-anzahl-text").textContent = packungenText(g.anzahl);
   $("btn-gewuerz-minus").disabled = g.anzahl <= 0;
   $("btn-gewuerz-plus").disabled = g.anzahl >= 99;
 
@@ -2349,6 +2446,75 @@ async function gewuerzSetzen(nr, anzahl) {
     if (offenesGewuerz === nr) gewuerzZeichnen(nr);
     toast("Nicht gespeichert — bitte erneut versuchen.");
     return false;
+  }
+}
+
+/* Neu anlegen */
+function gneuFehler(text) {
+  const el = $("gneu-fehler");
+  el.textContent = text;
+  el.classList.toggle("versteckt", !text);
+}
+
+function gneuWahl(gruppe, attr, wert) {
+  for (const b of $(gruppe).querySelectorAll("button")) {
+    b.setAttribute("aria-pressed", String(b.dataset[attr] === wert));
+  }
+}
+
+function gneuOeffnen() {
+  $("gneu-name").value = "";
+  $("gneu-hersteller").value = "";
+  $("gneu-zutaten").value = "";
+  gneuWahl("gneu-typ", "typ", "Mischung");
+  // Aus der Besorgen-Ansicht heraus landet Neues auf der Liste, sonst im Vorrat.
+  gneuWahl("gneu-wohin", "wohin", gFilter === "besorgen" ? "besorgen" : "vorrat");
+  gneuFehler("");
+  $("btn-gneu-anlegen").disabled = false;
+  overlayAuf("gneu");
+  setTimeout(() => $("gneu-name").focus(), 180);
+}
+
+async function gneuAnlegen() {
+  const name = $("gneu-name").value.trim();
+  if (!name) {
+    gneuFehler("Bitte einen Namen eingeben.");
+    $("gneu-name").focus();
+    return;
+  }
+  const typ = $("gneu-typ").querySelector('button[aria-pressed="true"]').dataset.typ;
+  const wohin = $("gneu-wohin").querySelector('button[aria-pressed="true"]').dataset.wohin;
+  const knopf = $("btn-gneu-anlegen");
+  knopf.disabled = true;
+  gneuFehler("");
+  ladeAnzeige(true);
+  try {
+    const antwort = await ruf({
+      action: "gewuerz_neu",
+      code: lies(SPEICHER.code, ""),
+      name: name,
+      hersteller: $("gneu-hersteller").value.trim(),
+      typ: typ,
+      anzahl: wohin === "besorgen" ? 0 : 1,
+      zutaten: $("gneu-zutaten").value.trim()
+    });
+    if (antwort && antwort.ok) {
+      overlayZu("gneu");
+      uebernimmGewuerze(antwort);
+      toast(wohin === "besorgen" ? "Auf der Besorgen-Liste: " + name : "Im Vorrat: " + name);
+    } else if (antwort && antwort.error === "doppelt") {
+      gneuFehler("Gibt es schon" + (antwort.nr ? " (Nr. " + antwort.nr + ")" : "") + ". Anzahl dort ändern statt neu anlegen.");
+    } else if (antwort && antwort.error === "code") {
+      overlayZu("gneu");
+      codeAbgelehnt();
+    } else {
+      gneuFehler("Nicht gespeichert — bitte erneut versuchen.");
+    }
+  } catch (e) {
+    gneuFehler("Nicht gespeichert — bitte erneut versuchen.");
+  } finally {
+    knopf.disabled = false;
+    ladeAnzeige(false);
   }
 }
 
@@ -2564,10 +2730,34 @@ $("btn-gsuche-leeren").addEventListener("click", () => {
   $("gsuche").focus();
 });
 
-$("gewuerze-liste").addEventListener("click", (e) => {
+$("gewuerze-liste").addEventListener("click", async (e) => {
+  const plus = e.target.closest("button[data-gplus]");
+  if (plus) {
+    const nr = Number(plus.dataset.gplus);
+    const g = gewuerze && gewuerze.find((x) => x.nr === nr);
+    if (g && await gewuerzSetzen(nr, 1)) toast("Im Vorrat: " + g.name);
+    return;
+  }
   const knopf = e.target.closest("button[data-gnr]");
   if (knopf) gewuerzOeffnen(Number(knopf.dataset.gnr));
 });
+
+$("btn-gewuerz-neu").addEventListener("click", gneuOeffnen);
+$("btn-gneu-anlegen").addEventListener("click", gneuAnlegen);
+
+$("gneu-typ").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-typ]");
+  if (knopf) gneuWahl("gneu-typ", "typ", knopf.dataset.typ);
+});
+
+$("gneu-wohin").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-wohin]");
+  if (knopf) gneuWahl("gneu-wohin", "wohin", knopf.dataset.wohin);
+});
+
+for (const feld of [$("gneu-name"), $("gneu-hersteller"), $("gneu-zutaten")]) {
+  feld.addEventListener("keydown", (e) => { if (e.key === "Enter") gneuAnlegen(); });
+}
 
 $("btn-gewuerz-minus").addEventListener("click", () => {
   const g = gewuerze && gewuerze.find((x) => x.nr === offenesGewuerz);
@@ -2598,13 +2788,13 @@ for (const el of document.querySelectorAll("[data-schliessen]")) {
   el.addEventListener("click", () => overlayZu(el.closest(".overlay").id));
 }
 
-for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz"]) {
+for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz", "gneu"]) {
   $(id).addEventListener("click", (e) => { if (e.target.id === id) overlayZu(id); });
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz"]) overlayZu(id);
+  for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz", "gneu"]) overlayZu(id);
 });
 
 for (const feld of [$("betrag"), $("kommentar")]) {
