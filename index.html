@@ -60,16 +60,16 @@ body[data-bereich="kisten"] {
 }
 
 body[data-bereich="gewuerze"] {
-  --akzent-1: #a85a18;
-  --akzent-2: #62300d;
-  --akzent-knopf: #a85a18;
-  --akzent-text: #9a5114;
+  --akzent-1: #6a45a6;
+  --akzent-2: #3a2364;
+  --akzent-knopf: #6a45a6;
+  --akzent-text: #5c3b95;
 }
 
 @media (prefers-color-scheme: dark) {
   :root { --akzent-knopf: #1b6b54; --akzent-text: #4cc38a; }
   body[data-bereich="kisten"] { --akzent-knopf: #27507f; --akzent-text: #82b4f2; }
-  body[data-bereich="gewuerze"] { --akzent-knopf: #8a4a14; --akzent-text: #f0a75c; }
+  body[data-bereich="gewuerze"] { --akzent-knopf: #563a8a; --akzent-text: #b79bee; }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -318,6 +318,8 @@ main {
   background: var(--karte);
   border-top: 1px solid var(--linie);
 }
+
+.aktionen.eins { grid-template-columns: 1fr; }
 
 .tat {
   display: flex;
@@ -1003,7 +1005,18 @@ main {
   transition: opacity .2s ease, transform .2s ease;
 }
 
-.toast.an { opacity: 1; transform: translate(-50%, 0); }
+.toast.an { opacity: 1; transform: translate(-50%, 0); pointer-events: auto; }
+
+.toast button {
+  margin: -6px -8px -6px 14px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--gold);
+  font-size: 14.5px;
+  font-weight: 700;
+}
+
+.toast button:active { background: rgba(255, 255, 255, .12); }
 
 @media (prefers-reduced-motion: reduce) {
   *, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
@@ -1026,14 +1039,14 @@ main {
     </span>
   </div>
   <div class="reiter" id="reiter" role="tablist" aria-label="Bereich">
-    <button type="button" role="tab" data-bereich="spar" aria-selected="true">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8M7 7h10M7 7c-1.5 1.5-2 3-2 5v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6c0-2-.5-3.5-2-5"/><path d="M9.5 14.5h5M12 12v5"/></svg>Sparglas
+    <button type="button" role="tab" data-bereich="gewuerze" aria-selected="true">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-1.6 9a2 2 0 0 1-2 1.5H6.6a2 2 0 0 1-2-1.5z"/><path d="M8.5 10l3-6M15.5 10l-3-6M9.5 14v3M14.5 14v3"/></svg>Vorrat
     </button>
     <button type="button" role="tab" data-bereich="kisten" aria-selected="false">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/></svg>Kisten
     </button>
-    <button type="button" role="tab" data-bereich="gewuerze" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-1.6 9a2 2 0 0 1-2 1.5H6.6a2 2 0 0 1-2-1.5z"/><path d="M8.5 10l3-6M15.5 10l-3-6M9.5 14v3M14.5 14v3"/></svg>Vorrat
+    <button type="button" role="tab" data-bereich="spar" aria-selected="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3h8M7 7h10M7 7c-1.5 1.5-2 3-2 5v6a3 3 0 0 0 3 3h8a3 3 0 0 0 3-3v-6c0-2-.5-3.5-2-5"/><path d="M9.5 14.5h5M12 12v5"/></svg>Sparglas
     </button>
   </div>
 
@@ -1068,7 +1081,6 @@ main {
   <div id="kopf-gewuerze" class="versteckt">
     <div class="kzahl-zeile">
       <div class="kzahl zahl" id="gewuerze-zahl" aria-live="polite">—</div>
-      <button type="button" class="waehlen" id="btn-gewuerz-neu">+ Neu</button>
     </div>
     <div class="suchfeld">
       <input id="gsuche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
@@ -1105,6 +1117,12 @@ main {
   </button>
   <button class="tat raus" id="btn-aus">
     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/></svg>Entnehmen
+  </button>
+</div>
+
+<div class="aktionen eins versteckt" id="aktionen-vorrat">
+  <button class="tat" id="btn-gewuerz-neu">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Neu anlegen
   </button>
 </div>
 
@@ -2582,7 +2600,7 @@ async function gewuerzErledigt(nr) {
     const antwort = await ruf({ action: "gewuerz_loeschen", code: lies(SPEICHER.code, ""), nr: nr });
     if (antwort && antwort.ok) {
       uebernimmGewuerze(antwort);
-      toast("Erledigt: " + g.name);
+      toast("Erledigt: " + g.name, { text: "Rückgängig", tun: () => wiederAufListe(g) });
       return true;
     }
     gewuerze = vorher;
@@ -2595,6 +2613,25 @@ async function gewuerzErledigt(nr) {
     zeichneGewuerze();
     toast("Nicht gespeichert — bitte erneut versuchen.");
     return false;
+  }
+}
+
+/** Rückgängig nach „Erledigt“: die gelöschte Einmal-Position wieder anlegen. */
+async function wiederAufListe(g) {
+  try {
+    const antwort = await ruf({
+      action: "gewuerz_neu", code: lies(SPEICHER.code, ""),
+      name: g.name, hersteller: g.hersteller || "", hinweis: g.hinweis || "",
+      art: "einmalig", typ: "Sonstiges", anzahl: 0, zutaten: ""
+    });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+      toast("Wieder auf der Einkaufsliste: " + g.name);
+    } else {
+      toast("Nicht wiederhergestellt — bitte neu anlegen.");
+    }
+  } catch (e) {
+    toast("Nicht wiederhergestellt — bitte neu anlegen.");
   }
 }
 
@@ -2707,6 +2744,7 @@ function setzeBereich(neu, laden) {
   $("kisten-liste").classList.toggle("versteckt", !istK);
   $("gewuerze-liste").classList.toggle("versteckt", !istG);
   $("aktionen").classList.toggle("versteckt", istK || istG);
+  $("aktionen-vorrat").classList.toggle("versteckt", !istG);
   if (!istK && auswahlModus) setzeAuswahlModus(false);
   auswahlLeiste();
   $("liste-bereich").scrollTop = 0;
@@ -2782,12 +2820,25 @@ function werZeichnen(wer) {
   }
 }
 
-function toast(text) {
+/** Kurze Meldung unten. Mit aktion = { text, tun } erscheint ein Knopf (z. B. Rückgängig),
+ *  die Meldung bleibt dann länger stehen. */
+function toast(text, aktion) {
   const el = $("toast");
-  el.textContent = text;
+  el.replaceChildren(document.createTextNode(text));
+  if (aktion) {
+    const knopf = document.createElement("button");
+    knopf.type = "button";
+    knopf.textContent = aktion.text;
+    knopf.addEventListener("click", () => {
+      el.classList.remove("an");
+      clearTimeout(toast.timer);
+      aktion.tun();
+    });
+    el.append(knopf);
+  }
   el.classList.add("an");
   clearTimeout(toast.timer);
-  toast.timer = setTimeout(() => el.classList.remove("an"), 2600);
+  toast.timer = setTimeout(() => el.classList.remove("an"), aktion ? 6000 : 2600);
 }
 
 /* --- Ereignisse ----------------------------------------------------------- */
@@ -2921,7 +2972,11 @@ $("gewuerze-liste").addEventListener("click", async (e) => {
   if (plus) {
     const nr = Number(plus.dataset.gplus);
     const g = gewuerze && gewuerze.find((x) => x.nr === nr);
-    if (g && await gewuerzSetzen(nr, 1)) toast("Im Vorrat: " + g.name);
+    if (g && await gewuerzSetzen(nr, 1)) {
+      toast("Im Vorrat: " + g.name, { text: "Rückgängig", tun: async () => {
+        if (await gewuerzSetzen(nr, 0)) toast("Wieder zu besorgen: " + g.name);
+      } });
+    }
     return;
   }
   const haken = e.target.closest("button[data-gerledigt]");
@@ -3186,7 +3241,8 @@ if (window.visualViewport) {
     zeichneKisten();
   }
 
-  setzeGFilter(lies(SPEICHER.gfilter, "gewuerz"));
+  // Beim Öffnen immer die Einkaufsliste — das ist der häufigste Griff (Indir, 28.09.2026).
+  setzeGFilter("einkaufen");
   const gewuerzeSpeicher = lies(SPEICHER.gewuerze, null);
   if (gewuerzeSpeicher && gewuerzeSpeicher.gewuerze) {
     gewuerze = gewuerzeSpeicher.gewuerze;
@@ -3194,7 +3250,8 @@ if (window.visualViewport) {
     zeichneGewuerze();
   }
 
-  setzeBereich(lies(SPEICHER.bereich, "spar"), false);
+  // Beim Öffnen immer der Vorrat, unabhängig vom letzten Reiter.
+  setzeBereich("gewuerze", false);
 
   if (!lies(SPEICHER.code, "")) {
     einrichtenOeffnen("");
