@@ -724,6 +724,7 @@ main {
 /* Die Zeilen nutzen das Kisten-Muster; „leer“ = aufgebraucht, sieht aus wie
    eine ausgepackte Kiste, damit die Liste denselben Rhythmus behält. */
 .kiste.aufgebraucht .kiste-nr { background: var(--linie); color: var(--leise); }
+.kiste-nr svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .kiste.aufgebraucht .kiste-titel { color: var(--leise); }
 
 /* Plus am Zeilenende auf der Besorgen-Liste: holt die Position in den Vorrat.
@@ -1032,7 +1033,7 @@ main {
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 8l9-4 9 4v9l-9 4-9-4z"/><path d="M3 8l9 4 9-4M12 12v9"/></svg>Kisten
     </button>
     <button type="button" role="tab" data-bereich="gewuerze" aria-selected="false">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 4c-8 0-14 5-14 12 0 2 1 3 3 3 7 0 12-6 11-15z"/><path d="M4 20l8-8"/></svg>Gewürze
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-1.6 9a2 2 0 0 1-2 1.5H6.6a2 2 0 0 1-2-1.5z"/><path d="M8.5 10l3-6M15.5 10l-3-6M9.5 14v3M14.5 14v3"/></svg>Vorrat
     </button>
   </div>
 
@@ -1071,19 +1072,17 @@ main {
     </div>
     <div class="suchfeld">
       <input id="gsuche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
-             autocapitalize="none" spellcheck="false" placeholder="Gewürz, Marke oder Zutat"
-             aria-label="Gewürze durchsuchen">
+             autocapitalize="none" spellcheck="false" placeholder="Name, Marke oder Zutat"
+             aria-label="Vorrat durchsuchen">
       <button type="button" class="suche-x versteckt" id="btn-gsuche-leeren" aria-label="Suche löschen">
         <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
       </button>
     </div>
     <div class="kfilter" id="gfilter">
-      <button type="button" data-gfilter="besorgen" aria-pressed="false">Besorgen</button>
+      <button type="button" data-gfilter="einkaufen" aria-pressed="false">Einkaufen</button>
       <span class="trenner" aria-hidden="true"></span>
-      <button type="button" data-gfilter="alle" aria-pressed="true">Alle</button>
-      <button type="button" data-gfilter="Mischung" aria-pressed="false">Mischungen</button>
-      <button type="button" data-gfilter="Einzeln" aria-pressed="false">Einzeln</button>
-      <button type="button" data-gfilter="Sonstiges" aria-pressed="false">Sonstiges</button>
+      <button type="button" data-gfilter="gewuerz" aria-pressed="true">Gewürze</button>
+      <button type="button" data-gfilter="sonstiges" aria-pressed="false">Alles andere</button>
     </div>
   </div>
 
@@ -1216,26 +1215,35 @@ main {
       <input id="gneu-name" type="text" autocomplete="off" enterkeyhint="next" placeholder="z. B. Kreuzkümmel gemahlen">
     </div>
     <div class="feld">
-      <label for="gneu-hersteller">Hersteller (optional)</label>
+      <label for="gneu-hersteller">Marke / Hersteller (optional)</label>
       <input id="gneu-hersteller" type="text" autocomplete="off" enterkeyhint="next" placeholder="z. B. Ankerkraut">
     </div>
     <div class="feld">
-      <label>Art</label>
+      <label>Was ist es?</label>
+      <div class="wahl drei" id="gneu-art">
+        <button type="button" data-art="gewuerz" aria-pressed="true">Gewürz</button>
+        <button type="button" data-art="sonstiges" aria-pressed="false">Alles andere</button>
+        <button type="button" data-art="einmalig" aria-pressed="false">Nur Einkauf</button>
+      </div>
+      <p class="hilfe" id="gneu-art-hilfe"></p>
+    </div>
+    <div class="feld" id="gneu-typ-feld">
+      <label>Gewürzart</label>
       <div class="wahl drei" id="gneu-typ">
         <button type="button" data-typ="Mischung" aria-pressed="true">Mischung</button>
         <button type="button" data-typ="Einzeln" aria-pressed="false">Einzeln</button>
         <button type="button" data-typ="Sonstiges" aria-pressed="false">Sonstiges</button>
       </div>
     </div>
-    <div class="feld">
+    <div class="feld" id="gneu-zutaten-feld">
       <label for="gneu-zutaten">Zutaten (optional)</label>
       <input id="gneu-zutaten" type="text" autocomplete="off" enterkeyhint="done" placeholder="Komma-getrennt">
     </div>
-    <div class="feld">
+    <div class="feld" id="gneu-wohin-feld">
       <label>Wohin?</label>
       <div class="wahl" id="gneu-wohin">
         <button type="button" data-wohin="vorrat" aria-pressed="true">In den Vorrat</button>
-        <button type="button" data-wohin="besorgen" aria-pressed="false">Auf Besorgen</button>
+        <button type="button" data-wohin="besorgen" aria-pressed="false">Auf die Einkaufsliste</button>
       </div>
     </div>
     <button class="absenden" id="btn-gneu-anlegen">Anlegen</button>
@@ -1254,6 +1262,7 @@ main {
       <div class="wert"><span id="gewuerz-anzahl">—</span><small id="gewuerz-anzahl-text"></small></div>
       <button type="button" id="btn-gewuerz-plus" aria-label="Eine Packung mehr">+</button>
     </div>
+    <button class="absenden versteckt" id="btn-gewuerz-erledigt">Erledigt – von der Liste nehmen</button>
     <div class="zutaten versteckt" id="gewuerz-zutaten"></div>
     <div class="k-text versteckt" id="gewuerz-hinweis"></div>
     <a class="quelle versteckt" id="gewuerz-quelle" target="_blank" rel="noopener">Zur Quelle</a>
@@ -1283,7 +1292,8 @@ const SPEICHER = {
   bereich: "sparglas.bereich",
   mockKisten: "sparglas.mockkisten",
   gewuerze: "sparglas.gewuerze",
-  mockGewuerze: "sparglas.mockgewuerze"
+  mockGewuerze: "sparglas.mockgewuerze",
+  gfilter: "sparglas.gfilter"
 };
 
 /* --- kleine Helfer -------------------------------------------------------- */
@@ -1395,7 +1405,7 @@ let bereich = "spar";       // sichtbarer Reiter: "spar", "kisten" oder "gewuerz
 let gewuerze = null;        // Liste der Gewürze & Co.
 let gewuerzeGeladenAm = null;
 let gSuchtext = "";         // Suchfeld im Gewürze-Kopf
-let gFilter = "alle";       // "besorgen" | "alle" | "Mischung" | "Einzeln" | "Sonstiges"
+let gFilter = "gewuerz";    // "einkaufen" | "gewuerz" | "sonstiges" — der Chip im Vorrat
 let offenesGewuerz = null;  // nr der Position im Blatt
 let kisten = null;          // { kisten: [...], sachen: [...] }
 let kistenGeladenAm = null; // ISO-Zeitpunkt des letzten Kisten-Ladens
@@ -1444,7 +1454,7 @@ function mockRuf(nutzlast) {
         return fertig(mockKisten(nutzlast));
       }
       if (nutzlast.action === "gewuerze" || nutzlast.action === "gewuerz_setzen" ||
-          nutzlast.action === "gewuerz_neu") {
+          nutzlast.action === "gewuerz_neu" || nutzlast.action === "gewuerz_loeschen") {
         return fertig(mockGewuerze(nutzlast));
       }
       const daten = lies(SPEICHER.mock, null) || mockStart();
@@ -1551,8 +1561,15 @@ function mockGewuerze(nutzlast) {
       { nr: 2, name: "Patatas Bravas", hersteller: "Ankerkraut", typ: "Mischung", anzahl: 1, ort: "Schublade 1", zutaten: "Tomatenchips, Meersalz, Paprika edelsüß, Knoblauch, Senfmehl, Sellerie", quelle: "", hinweis: "" },
       { nr: 3, name: "Paprika edelsüß", hersteller: "", typ: "Einzeln", anzahl: 3, ort: "Schublade 1", zutaten: "", quelle: "", hinweis: "" },
       { nr: 4, name: "Safranfäden", hersteller: "Alb-Safran", typ: "Einzeln", anzahl: 0, ort: "Schublade 1", zutaten: "", quelle: "", hinweis: "" },
-      { nr: 5, name: "Gochujang", hersteller: "", typ: "Sonstiges", anzahl: 1, ort: "Kühlschrank", zutaten: "", quelle: "", hinweis: "" }
+      { nr: 5, name: "Gochujang", hersteller: "", typ: "Sonstiges", anzahl: 1, ort: "Kühlschrank", zutaten: "", quelle: "", hinweis: "", art: "gewuerz" },
+      { nr: 6, name: "Spülmaschinentabs", hersteller: "Finish", typ: "Sonstiges", anzahl: 0, ort: "", zutaten: "", quelle: "", hinweis: "", art: "sonstiges" },
+      { nr: 7, name: "Batterien AAA", hersteller: "", typ: "Sonstiges", anzahl: 0, ort: "", zutaten: "", quelle: "", hinweis: "", art: "einmalig" }
     ];
+  }
+  if (nutzlast.action === "gewuerz_loeschen") {
+    const i = liste.findIndex(function (x) { return x.nr === Number(nutzlast.nr); });
+    if (i < 0) return { ok: false, error: "unbekannt" };
+    liste.splice(i, 1);
   }
   if (nutzlast.action === "gewuerz_setzen") {
     const g = liste.find(function (x) { return x.nr === Number(nutzlast.nr); });
@@ -1570,7 +1587,8 @@ function mockGewuerze(nutzlast) {
     if (doppelt) return { ok: false, error: "doppelt", nr: doppelt.nr };
     neueNr = liste.reduce(function (m, x) { return Math.max(m, x.nr); }, 0) + 1;
     liste.push({ nr: neueNr, name: name, hersteller: String(nutzlast.hersteller || ""), typ: nutzlast.typ || "Sonstiges",
-      anzahl: Number(nutzlast.anzahl) || 0, ort: "", zutaten: String(nutzlast.zutaten || ""), quelle: "", hinweis: "" });
+      anzahl: Number(nutzlast.anzahl) || 0, ort: "", zutaten: String(nutzlast.zutaten || ""), quelle: "", hinweis: "",
+      art: nutzlast.art || "gewuerz" });
   }
   schreibe(SPEICHER.mockGewuerze, liste);
   return { ok: true, gewuerze: liste, nr: neueNr };
@@ -2286,6 +2304,21 @@ function packungen(n) {
   return n === 1 ? "1 Packung" : n + " Packungen";
 }
 
+function artVon(g) {
+  return g.art === "sonstiges" || g.art === "einmalig" ? g.art : "gewuerz";
+}
+
+function artText(art) {
+  if (art === "sonstiges") return "Alles andere";
+  if (art === "einmalig") return "Nur für den Einkauf";
+  return "Gewürz";
+}
+
+/** Steht auf der Einkaufsliste: Vorrat aufgebraucht oder Einmal-Position. */
+function zuBesorgen(g) {
+  return artVon(g) === "einmalig" || g.anzahl === 0;
+}
+
 function zeichneGewuerze() {
   const zahl = $("gewuerze-zahl");
   const ziel = $("gewuerze-liste");
@@ -2297,58 +2330,77 @@ function zeichneGewuerze() {
   }
 
   const alle = gewuerze.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "de"); });
-  const summe = alle.reduce(function (s, g) { return s + (g.anzahl || 0); }, 0);
 
+  // Kopfzahl je Ansicht: Einkaufen zählt Offenes, Vorrat zählt Positionen und Packungen.
   zahl.replaceChildren();
-  if (alle.length) {
-    zahl.append(String(alle.length) + " ");
+  if (gFilter === "einkaufen") {
+    const offen = alle.filter(zuBesorgen).length;
+    zahl.append(String(offen) + " ");
     const rest = document.createElement("small");
-    rest.textContent = "Positionen · " + summe + " Packungen";
+    rest.textContent = offen === 1 ? "zu besorgen" : "zu besorgen";
     zahl.append(rest);
   } else {
-    zahl.textContent = "—";
+    const eigene = alle.filter(function (g) { return artVon(g) === gFilter; });
+    const summe = eigene.reduce(function (s, g) { return s + (g.anzahl || 0); }, 0);
+    if (eigene.length) {
+      zahl.append(String(eigene.length) + " ");
+      const rest = document.createElement("small");
+      rest.textContent = "Positionen · " + summe + " Packungen";
+      zahl.append(rest);
+    } else {
+      zahl.textContent = "—";
+    }
   }
 
+  // Die Suche geht immer über alles, die Chips gelten nur ohne Suchtext.
   const q = flach(gSuchtext.trim());
   const gefiltert = alle.filter(function (g) {
-    if (gFilter === "besorgen" && g.anzahl !== 0) return false;
-    if (gFilter !== "alle" && gFilter !== "besorgen" && g.typ !== gFilter) return false;
-    if (!q) return true;
-    return passt(g.name, q) || passt(g.hersteller, q) || passt(g.zutaten, q) || passt(g.hinweis, q);
+    if (q) return passt(g.name, q) || passt(g.hersteller, q) || passt(g.zutaten, q) || passt(g.hinweis, q);
+    if (gFilter === "einkaufen") return zuBesorgen(g);
+    return artVon(g) === gFilter;
   });
 
-  if (!alle.length) {
-    ziel.replaceChildren(leerText("Noch keine Gewürze im Sheet."));
-    return;
-  }
   if (!gefiltert.length) {
     ziel.replaceChildren(leerText(q
       ? "Nichts gefunden für „" + gSuchtext.trim() + "“."
-      : gFilter === "besorgen"
-        ? "Nichts zu besorgen. Aufgebrauchtes landet hier — oder über „+ Neu“ anlegen."
-        : "In dieser Ansicht ist gerade nichts."));
+      : gFilter === "einkaufen"
+        ? "Nichts zu besorgen. Aufgebrauchtes landet hier von selbst, Einmaliges über „+ Neu“."
+        : gFilter === "sonstiges"
+          ? "Noch nichts unter „Alles andere“. Über „+ Neu“ anlegen."
+          : "Noch keine Gewürze im Sheet."));
     return;
   }
 
   const teil = document.createDocumentFragment();
+  function gruppe(titel, liste, mitSuche) {
+    if (!liste.length) return;
+    const leer = liste.filter(function (g) { return g.anzahl === 0 && artVon(g) !== "einmalig"; }).length;
+    teil.append(gruppenKopf(titel, gFilter === "einkaufen" || !leer ? String(liste.length) : leer + " zu besorgen"));
+    const kasten = document.createElement("div");
+    kasten.className = "gruppe";
+    for (const g of liste) kasten.appendChild(gewuerzZeile(g, mitSuche ? q : ""));
+    teil.append(kasten);
+  }
+
   if (q) {
     teil.append(gruppenKopf(gefiltert.length === 1 ? "1 Treffer" : gefiltert.length + " Treffer", ""));
     const kasten = document.createElement("div");
     kasten.className = "gruppe";
     for (const g of gefiltert) kasten.appendChild(gewuerzZeile(g, q));
     teil.append(kasten);
-  } else {
-    // Ohne Suche nach Typ gruppieren: Mischungen zuerst, dann Einzelne, dann Sonstiges.
-    for (const typ of ["Mischung", "Einzeln", "Sonstiges"]) {
-      const liste = gefiltert.filter(function (g) { return (g.typ || "Sonstiges") === typ; });
-      if (!liste.length) continue;
-      const leer = liste.filter(function (g) { return g.anzahl === 0; }).length;
-      teil.append(gruppenKopf(typText(typ), leer ? leer + " zu besorgen" : String(liste.length)));
-      const kasten = document.createElement("div");
-      kasten.className = "gruppe";
-      for (const g of liste) kasten.appendChild(gewuerzZeile(g, ""));
-      teil.append(kasten);
+  } else if (gFilter === "einkaufen") {
+    // Einkaufsliste: erst Gewürze, dann Alles andere, dann Einmaliges.
+    for (const art of ["gewuerz", "sonstiges", "einmalig"]) {
+      gruppe(art === "gewuerz" ? "Gewürze" : art === "sonstiges" ? "Alles andere" : "Einmalig",
+             gefiltert.filter(function (g) { return artVon(g) === art; }), false);
     }
+  } else if (gFilter === "gewuerz") {
+    // Gewürze nach Typ gruppieren: Mischungen zuerst, dann Einzelne, dann Sonstiges.
+    for (const typ of ["Mischung", "Einzeln", "Sonstiges"]) {
+      gruppe(typText(typ), gefiltert.filter(function (g) { return (g.typ || "Sonstiges") === typ; }), false);
+    }
+  } else {
+    gruppe("Alles andere", gefiltert, false);
   }
   ziel.replaceChildren(teil);
 }
@@ -2364,8 +2416,9 @@ function zutatenAusschnitt(zutaten, q) {
 }
 
 function gewuerzZeile(g, q) {
+  const art = artVon(g);
   const el = document.createElement("div");
-  el.className = "kiste" + (g.anzahl === 0 ? " aufgebraucht" : "");
+  el.className = "kiste" + (g.anzahl === 0 && art !== "einmalig" ? " aufgebraucht" : "");
 
   const haupt = document.createElement("button");
   haupt.type = "button";
@@ -2375,7 +2428,12 @@ function gewuerzZeile(g, q) {
 
   const nr = document.createElement("span");
   nr.className = "kiste-nr";
-  nr.textContent = String(g.anzahl) + "×";
+  if (art === "einmalig") {
+    // Einmaliges hat keinen Bestand: Korb statt Zähler.
+    nr.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 10h18l-1.6 9a2 2 0 0 1-2 1.5H6.6a2 2 0 0 1-2-1.5z"/><path d="M8.5 10l3-6M15.5 10l-3-6"/></svg>';
+  } else {
+    nr.textContent = String(g.anzahl) + "×";
+  }
 
   const text = document.createElement("div");
   text.className = "kiste-text";
@@ -2388,7 +2446,10 @@ function gewuerzZeile(g, q) {
   meta.className = "kiste-meta";
   const oben = [];
   if (g.hersteller) oben.push(g.hersteller);
-  if (g.anzahl === 0) oben.push("zu besorgen");
+  if (art === "einmalig") oben.push("nur für den Einkauf");
+  else if (g.anzahl === 0) oben.push("zu besorgen");
+  // In Suchtreffern steht dabei, wo eine Position hingehört.
+  if (q && art === "sonstiges") oben.push("Alles andere");
   oben.forEach(function (t, i) {
     if (i) meta.append(" · ");
     meta.append(markiere(t, q));
@@ -2406,8 +2467,16 @@ function gewuerzZeile(g, q) {
   haupt.append(nr, text);
   el.append(haupt);
 
-  // Auf der Besorgen-Liste (Anzahl 0) holt ein Plus die Position in den Vorrat.
-  if (g.anzahl === 0) {
+  // Rechts am Zeilenende: Plus holt Aufgebrauchtes in den Vorrat, Haken erledigt Einmaliges.
+  if (art === "einmalig") {
+    const haken = document.createElement("button");
+    haken.type = "button";
+    haken.className = "besorgen-plus";
+    haken.dataset.gerledigt = String(g.nr);
+    haken.setAttribute("aria-label", g.name + " erledigt, von der Einkaufsliste nehmen");
+    haken.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7"/></svg>';
+    el.append(haken);
+  } else if (g.anzahl === 0) {
     const plus = document.createElement("button");
     plus.type = "button";
     plus.className = "besorgen-plus";
@@ -2427,11 +2496,16 @@ function gewuerzZeichnen(nr) {
   const g = gewuerze && gewuerze.find(function (x) { return x.nr === nr; });
   if (!g) return false;
 
+  const art = artVon(g);
   $("gewuerz-titel").textContent = g.name;
   const meta = [];
   if (g.hersteller) meta.push(g.hersteller);
-  meta.push(g.typ || "Sonstiges");
+  meta.push(art === "gewuerz" ? (g.typ || "Sonstiges") : artText(art));
   $("gewuerz-meta").textContent = meta.join(" · ");
+
+  // Einmaliges hat keinen Bestand: statt Stepper ein Erledigt-Knopf.
+  $("gewuerz-stepper").classList.toggle("versteckt", art === "einmalig");
+  $("btn-gewuerz-erledigt").classList.toggle("versteckt", art !== "einmalig");
 
   $("gewuerz-anzahl").textContent = String(g.anzahl);
   $("gewuerz-anzahl-text").textContent = packungenText(g.anzahl);
@@ -2496,6 +2570,34 @@ async function gewuerzSetzen(nr, anzahl) {
   }
 }
 
+/** Einmal-Position erledigen: optimistisch aus der Liste nehmen, Script löscht die Zeile. */
+async function gewuerzErledigt(nr) {
+  const g = gewuerze && gewuerze.find(function (x) { return x.nr === nr; });
+  if (!g) return false;
+  const vorher = gewuerze;
+  gewuerze = gewuerze.filter(function (x) { return x.nr !== nr; });
+  zeichneGewuerze();
+  if (offenesGewuerz === nr) overlayZu("gewuerz");
+  try {
+    const antwort = await ruf({ action: "gewuerz_loeschen", code: lies(SPEICHER.code, ""), nr: nr });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+      toast("Erledigt: " + g.name);
+      return true;
+    }
+    gewuerze = vorher;
+    zeichneGewuerze();
+    if (antwort && antwort.error === "code") codeAbgelehnt();
+    else toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
+  } catch (e) {
+    gewuerze = vorher;
+    zeichneGewuerze();
+    toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
+  }
+}
+
 /* Neu anlegen */
 function gneuFehler(text) {
   const el = $("gneu-fehler");
@@ -2509,13 +2611,31 @@ function gneuWahl(gruppe, attr, wert) {
   }
 }
 
+/** Felder des Formulars je nach Art ein- und ausblenden. */
+function gneuArtAnzeigen() {
+  const art = $("gneu-art").querySelector('button[aria-pressed="true"]').dataset.art;
+  $("gneu-typ-feld").classList.toggle("versteckt", art !== "gewuerz");
+  $("gneu-zutaten-feld").classList.toggle("versteckt", art !== "gewuerz");
+  $("gneu-wohin-feld").classList.toggle("versteckt", art === "einmalig");
+  $("gneu-art-hilfe").textContent =
+    art === "einmalig" ? "Steht nur auf der Einkaufsliste und verschwindet beim Abhaken."
+    : art === "sonstiges" ? "Vorrat außerhalb der Gewürze, mit Packungszähler."
+    : "";
+  $("gneu-name").placeholder =
+    art === "einmalig" ? "z. B. Geschenk für Eva"
+    : art === "sonstiges" ? "z. B. Spülmaschinentabs"
+    : "z. B. Kreuzkümmel gemahlen";
+}
+
 function gneuOeffnen() {
   $("gneu-name").value = "";
   $("gneu-hersteller").value = "";
   $("gneu-zutaten").value = "";
   gneuWahl("gneu-typ", "typ", "Mischung");
-  // Aus der Besorgen-Ansicht heraus landet Neues auf der Liste, sonst im Vorrat.
-  gneuWahl("gneu-wohin", "wohin", gFilter === "besorgen" ? "besorgen" : "vorrat");
+  // Die Art folgt dem Chip: im Einkaufen ist Neues meist einmalig, sonst passt es zur Ansicht.
+  gneuWahl("gneu-art", "art", gFilter === "einkaufen" ? "einmalig" : gFilter === "sonstiges" ? "sonstiges" : "gewuerz");
+  gneuWahl("gneu-wohin", "wohin", gFilter === "einkaufen" ? "besorgen" : "vorrat");
+  gneuArtAnzeigen();
   gneuFehler("");
   $("btn-gneu-anlegen").disabled = false;
   overlayAuf("gneu");
@@ -2529,8 +2649,10 @@ async function gneuAnlegen() {
     $("gneu-name").focus();
     return;
   }
+  const art = $("gneu-art").querySelector('button[aria-pressed="true"]').dataset.art;
   const typ = $("gneu-typ").querySelector('button[aria-pressed="true"]').dataset.typ;
   const wohin = $("gneu-wohin").querySelector('button[aria-pressed="true"]').dataset.wohin;
+  const aufListe = art === "einmalig" || wohin === "besorgen";
   const knopf = $("btn-gneu-anlegen");
   knopf.disabled = true;
   gneuFehler("");
@@ -2541,14 +2663,15 @@ async function gneuAnlegen() {
       code: lies(SPEICHER.code, ""),
       name: name,
       hersteller: $("gneu-hersteller").value.trim(),
-      typ: typ,
-      anzahl: wohin === "besorgen" ? 0 : 1,
-      zutaten: $("gneu-zutaten").value.trim()
+      typ: art === "gewuerz" ? typ : "Sonstiges",
+      art: art,
+      anzahl: aufListe ? 0 : 1,
+      zutaten: art === "gewuerz" ? $("gneu-zutaten").value.trim() : ""
     });
     if (antwort && antwort.ok) {
       overlayZu("gneu");
       uebernimmGewuerze(antwort);
-      toast(wohin === "besorgen" ? "Auf der Besorgen-Liste: " + name : "Im Vorrat: " + name);
+      toast(aufListe ? "Auf der Einkaufsliste: " + name : "Im Vorrat: " + name);
     } else if (antwort && antwort.error === "doppelt") {
       gneuFehler("Gibt es schon" + (antwort.nr ? " (Nr. " + antwort.nr + ")" : "") + ". Anzahl dort ändern statt neu anlegen.");
     } else if (antwort && antwort.error === "code") {
@@ -2762,14 +2885,19 @@ $("btn-kiste-status").addEventListener("click", () => {
 $("btn-kiste-loeschen").addEventListener("click", loeschKnopfGetippt);
 
 /* Gewürze */
-$("gfilter").addEventListener("click", (e) => {
-  const knopf = e.target.closest("button[data-gfilter]");
-  if (!knopf) return;
-  gFilter = knopf.dataset.gfilter;
+/** Chip setzen und merken — wer im Laden steht, sieht beim Öffnen gleich die Liste. */
+function setzeGFilter(wert) {
+  gFilter = wert === "einkaufen" || wert === "sonstiges" ? wert : "gewuerz";
+  schreibe(SPEICHER.gfilter, gFilter);
   for (const b of $("gfilter").querySelectorAll("button[data-gfilter]")) {
     b.setAttribute("aria-pressed", String(b.dataset.gfilter === gFilter));
   }
   zeichneGewuerze();
+}
+
+$("gfilter").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-gfilter]");
+  if (knopf) setzeGFilter(knopf.dataset.gfilter);
 });
 
 for (const ereignis of ["input", "search"]) {
@@ -2796,6 +2924,11 @@ $("gewuerze-liste").addEventListener("click", async (e) => {
     if (g && await gewuerzSetzen(nr, 1)) toast("Im Vorrat: " + g.name);
     return;
   }
+  const haken = e.target.closest("button[data-gerledigt]");
+  if (haken) {
+    gewuerzErledigt(Number(haken.dataset.gerledigt));
+    return;
+  }
   const knopf = e.target.closest("button[data-gnr]");
   if (knopf) gewuerzOeffnen(Number(knopf.dataset.gnr));
 });
@@ -2803,9 +2936,20 @@ $("gewuerze-liste").addEventListener("click", async (e) => {
 $("btn-gewuerz-neu").addEventListener("click", gneuOeffnen);
 $("btn-gneu-anlegen").addEventListener("click", gneuAnlegen);
 
+$("gneu-art").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-art]");
+  if (!knopf) return;
+  gneuWahl("gneu-art", "art", knopf.dataset.art);
+  gneuArtAnzeigen();
+});
+
 $("gneu-typ").addEventListener("click", (e) => {
   const knopf = e.target.closest("button[data-typ]");
   if (knopf) gneuWahl("gneu-typ", "typ", knopf.dataset.typ);
+});
+
+$("btn-gewuerz-erledigt").addEventListener("click", () => {
+  if (offenesGewuerz !== null) gewuerzErledigt(offenesGewuerz);
 });
 
 $("gneu-wohin").addEventListener("click", (e) => {
@@ -3042,6 +3186,7 @@ if (window.visualViewport) {
     zeichneKisten();
   }
 
+  setzeGFilter(lies(SPEICHER.gfilter, "gewuerz"));
   const gewuerzeSpeicher = lies(SPEICHER.gewuerze, null);
   if (gewuerzeSpeicher && gewuerzeSpeicher.gewuerze) {
     gewuerze = gewuerzeSpeicher.gewuerze;
