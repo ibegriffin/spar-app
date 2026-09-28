@@ -19,7 +19,7 @@
 <style>
 /* ---------------------------------------------------------------------------
    Sparglas — eine Datei, kein Framework, kein Build-Schritt.
-   Aufbau: 1) Farben & Grundlagen  2) Kopf  3) Liste  4) Aktionen  5) Kisten
+   Aufbau: 1) Farben & Grundlagen  2) Kopf  3) Liste  4) Aktionen  5) Kisten  5b) Gewürze
            6) Overlays (Buchen, Einrichten, Einstellungen, Kiste)  7) Hinweise
    --------------------------------------------------------------------------- */
 
@@ -320,7 +320,7 @@ main {
 /* Umschalter zwischen Sparglas und Kisten, sitzt im gruenen Kopf. */
 .reiter {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 3px;
   margin-top: 14px;
   padding: 3px;
@@ -684,6 +684,89 @@ main {
   font-size: 13.5px;
 }
 
+/* 5b) Gewürze & Co. -------------------------------------------------------- */
+/* Die Zeilen nutzen das Kisten-Muster; „leer“ = aufgebraucht, sieht aus wie
+   eine ausgepackte Kiste, damit die Liste denselben Rhythmus behält. */
+.kiste.aufgebraucht .kiste-nr { background: var(--linie); color: var(--leise); }
+.kiste.aufgebraucht .kiste-titel { color: var(--leise); }
+
+.kiste-meta .zut {
+  display: block;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Anzahl-Stepper im Blatt: minus, Zahl, plus */
+.stepper {
+  display: grid;
+  grid-template-columns: 54px 1fr 54px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 6px;
+  border-radius: 14px;
+  background: var(--karte);
+}
+
+.stepper button {
+  height: 46px;
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+.stepper button:active { background: var(--bg); }
+.stepper button:disabled { opacity: .3; }
+
+.stepper .wert {
+  text-align: center;
+  font-size: 22px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.stepper .wert small {
+  display: block;
+  margin-top: 2px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: var(--leise);
+}
+
+.zutaten {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--karte);
+  font-size: 14.5px;
+  line-height: 1.45;
+}
+
+.zutaten b { display: block; margin-bottom: 4px; font-size: 12.5px; color: var(--leise); }
+
+.zutaten mark {
+  background: rgba(233, 168, 58, .32);
+  color: inherit;
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.quelle {
+  display: block;
+  margin-top: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--karte);
+  color: var(--ein);
+  font-size: 14.5px;
+  font-weight: 600;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
 /* 6) Overlays -------------------------------------------------------------- */
 .overlay {
   position: fixed;
@@ -878,6 +961,7 @@ main {
   <div class="reiter" id="reiter" role="tablist" aria-label="Bereich">
     <button type="button" role="tab" data-bereich="spar" aria-selected="true">Sparglas</button>
     <button type="button" role="tab" data-bereich="kisten" aria-selected="false">Kisten</button>
+    <button type="button" role="tab" data-bereich="gewuerze" aria-selected="false">Gewürze</button>
   </div>
 
   <div id="kopf-spar">
@@ -908,6 +992,26 @@ main {
       </div>
   </div>
 
+  <div id="kopf-gewuerze" class="versteckt">
+    <div class="kzahl zahl" id="gewuerze-zahl" aria-live="polite">—</div>
+    <div class="suchfeld">
+      <input id="gsuche" class="suche" type="search" enterkeyhint="search" autocomplete="off"
+             autocapitalize="none" spellcheck="false" placeholder="Gewürz, Marke oder Zutat"
+             aria-label="Gewürze durchsuchen">
+      <button type="button" class="suche-x versteckt" id="btn-gsuche-leeren" aria-label="Suche löschen">
+        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+    <div class="kfilter" id="gfilter">
+      <button type="button" data-gfilter="alle" aria-pressed="true">Alle</button>
+      <button type="button" data-gfilter="Mischung" aria-pressed="false">Mischungen</button>
+      <button type="button" data-gfilter="Einzeln" aria-pressed="false">Einzeln</button>
+      <button type="button" data-gfilter="Sonstiges" aria-pressed="false">Sonstiges</button>
+      <span class="trenner" aria-hidden="true"></span>
+      <button type="button" data-gfilter="leer" aria-pressed="false">Aufgebraucht</button>
+    </div>
+  </div>
+
   <div class="stand" id="stand"></div>
   <div class="laden" id="laden" aria-hidden="true"></div>
 </header>
@@ -918,6 +1022,7 @@ main {
   <div class="zieher" id="zieher" aria-hidden="true"></div>
   <div id="liste"></div>
   <div id="kisten-liste" class="versteckt"></div>
+  <div id="gewuerze-liste" class="versteckt"></div>
 </main>
 
 <div class="aktionen" id="aktionen">
@@ -1025,6 +1130,24 @@ main {
   </div>
 </div>
 
+<!-- Gewürz -->
+<div class="overlay" id="gewuerz" role="dialog" aria-modal="true" aria-labelledby="gewuerz-titel">
+  <div class="blatt">
+    <div class="griff"></div>
+    <h2 id="gewuerz-titel">Gewürz</h2>
+    <p class="hilfe" id="gewuerz-meta"></p>
+    <div class="stepper" id="gewuerz-stepper">
+      <button type="button" id="btn-gewuerz-minus" aria-label="Eine Packung weniger">−</button>
+      <div class="wert"><span id="gewuerz-anzahl">—</span><small id="gewuerz-anzahl-text"></small></div>
+      <button type="button" id="btn-gewuerz-plus" aria-label="Eine Packung mehr">+</button>
+    </div>
+    <div class="zutaten versteckt" id="gewuerz-zutaten"></div>
+    <div class="k-text versteckt" id="gewuerz-hinweis"></div>
+    <a class="quelle versteckt" id="gewuerz-quelle" target="_blank" rel="noopener">Zur Quelle</a>
+    <button class="abbrechen" data-schliessen>Schließen</button>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -1045,7 +1168,9 @@ const SPEICHER = {
   mock: "sparglas.mockdaten",
   kisten: "sparglas.kisten",
   bereich: "sparglas.bereich",
-  mockKisten: "sparglas.mockkisten"
+  mockKisten: "sparglas.mockkisten",
+  gewuerze: "sparglas.gewuerze",
+  mockGewuerze: "sparglas.mockgewuerze"
 };
 
 /* --- kleine Helfer -------------------------------------------------------- */
@@ -1153,7 +1278,12 @@ let laeuft = false;      // gerade ein Request unterwegs?
 let modus = "ein";       // aktueller Buchungs-Modus im Blatt
 let laufendeId = null;   // UUID der Buchung im Blatt (überlebt Fehlversuche)
 
-let bereich = "spar";       // sichtbarer Reiter: "spar" oder "kisten"
+let bereich = "spar";       // sichtbarer Reiter: "spar", "kisten" oder "gewuerze"
+let gewuerze = null;        // Liste der Gewürze & Co.
+let gewuerzeGeladenAm = null;
+let gSuchtext = "";         // Suchfeld im Gewürze-Kopf
+let gFilter = "alle";       // "alle" | "Mischung" | "Einzeln" | "Sonstiges" | "leer"
+let offenesGewuerz = null;  // nr der Position im Blatt
 let kisten = null;          // { kisten: [...], sachen: [...] }
 let kistenGeladenAm = null; // ISO-Zeitpunkt des letzten Kisten-Ladens
 let suchtext = "";          // Inhalt des Suchfelds
@@ -1199,6 +1329,9 @@ function mockRuf(nutzlast) {
       if (nutzlast.action === "kisten" || nutzlast.action === "kisten_setzen" ||
           nutzlast.action === "kiste_loeschen" || nutzlast.action === "kiste") {
         return fertig(mockKisten(nutzlast));
+      }
+      if (nutzlast.action === "gewuerze" || nutzlast.action === "gewuerz_setzen") {
+        return fertig(mockGewuerze(nutzlast));
       }
       const daten = lies(SPEICHER.mock, null) || mockStart();
       if (nutzlast.action === "add") {
@@ -1296,6 +1429,26 @@ function mockKistenStart() {
   return daten;
 }
 
+function mockGewuerze(nutzlast) {
+  let liste = lies(SPEICHER.mockGewuerze, null);
+  if (!liste) {
+    liste = [
+      { nr: 1, name: "Chili con Carne mild", hersteller: "Ankerkraut", typ: "Mischung", anzahl: 2, ort: "Schublade 1", zutaten: "Paprika edelsüß, Meersalz, schwarzer Pfeffer, Cumin, Oregano, Knoblauch, Cayennepfeffer", quelle: "https://www.ankerkraut.de/products/chili-con-carne-mild", hinweis: "" },
+      { nr: 2, name: "Patatas Bravas", hersteller: "Ankerkraut", typ: "Mischung", anzahl: 1, ort: "Schublade 1", zutaten: "Tomatenchips, Meersalz, Paprika edelsüß, Knoblauch, Senfmehl, Sellerie", quelle: "", hinweis: "" },
+      { nr: 3, name: "Paprika edelsüß", hersteller: "", typ: "Einzeln", anzahl: 3, ort: "Schublade 1", zutaten: "", quelle: "", hinweis: "" },
+      { nr: 4, name: "Safranfäden", hersteller: "Alb-Safran", typ: "Einzeln", anzahl: 0, ort: "Schublade 1", zutaten: "", quelle: "", hinweis: "" },
+      { nr: 5, name: "Gochujang", hersteller: "", typ: "Sonstiges", anzahl: 1, ort: "Kühlschrank", zutaten: "", quelle: "", hinweis: "" }
+    ];
+  }
+  if (nutzlast.action === "gewuerz_setzen") {
+    const g = liste.find(function (x) { return x.nr === Number(nutzlast.nr); });
+    if (!g) return { ok: false, error: "unbekannt" };
+    g.anzahl = Number(nutzlast.anzahl);
+  }
+  schreibe(SPEICHER.mockGewuerze, liste);
+  return { ok: true, gewuerze: liste };
+}
+
 /* --- Laden & Buchen ------------------------------------------------------- */
 function ladeAnzeige(an) {
   laeuft = an;
@@ -1336,7 +1489,9 @@ function uebernimm(antwort) {
 
 function standHinweis(fehler) {
   const el = $("stand");
-  const geladenAm = bereich === "kisten" ? kistenGeladenAm : standGeladenAm;
+  const geladenAm = bereich === "kisten" ? kistenGeladenAm
+    : bereich === "gewuerze" ? gewuerzeGeladenAm
+    : standGeladenAm;
   if (!geladenAm) {
     el.textContent = fehler ? "Kein Kontakt zum Sheet — bitte erneut aktualisieren." : "";
     return;
@@ -1962,31 +2117,274 @@ function auswahlUmschalten(nr) {
   zeichneKisten();
 }
 
+/* --- Gewürze & Co. -------------------------------------------------------- */
+
+async function ladeGewuerze(still) {
+  const code = lies(SPEICHER.code, "");
+  if (!code) return;
+  if (!still) ladeAnzeige(true);
+  try {
+    const antwort = await ruf({ action: "gewuerze", code: code });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+    } else if (antwort && antwort.error === "code") {
+      codeAbgelehnt();
+    } else {
+      standHinweis(true);
+    }
+  } catch (e) {
+    standHinweis(true);
+  } finally {
+    ladeAnzeige(false);
+  }
+}
+
+function uebernimmGewuerze(antwort) {
+  gewuerze = Array.isArray(antwort.gewuerze) ? antwort.gewuerze : [];
+  gewuerzeGeladenAm = new Date().toISOString();
+  schreibe(SPEICHER.gewuerze, { gewuerze: gewuerze, geladenAm: gewuerzeGeladenAm });
+  zeichneGewuerze();
+  if (offenesGewuerz !== null) gewuerzZeichnen(offenesGewuerz);
+  if (bereich === "gewuerze") standHinweis(false);
+}
+
+function typText(typ) {
+  if (typ === "Mischung") return "Mischungen";
+  if (typ === "Einzeln") return "Einzelne Gewürze & Kräuter";
+  return "Sonstiges";
+}
+
+function packungen(n) {
+  if (n === 0) return "aufgebraucht";
+  return n === 1 ? "1 Packung" : n + " Packungen";
+}
+
+function zeichneGewuerze() {
+  const zahl = $("gewuerze-zahl");
+  const ziel = $("gewuerze-liste");
+
+  if (!gewuerze) {
+    zahl.textContent = "—";
+    ziel.replaceChildren();
+    return;
+  }
+
+  const alle = gewuerze.slice().sort(function (a, b) { return a.name.localeCompare(b.name, "de"); });
+  const summe = alle.reduce(function (s, g) { return s + (g.anzahl || 0); }, 0);
+
+  zahl.replaceChildren();
+  if (alle.length) {
+    zahl.append(String(alle.length) + " ");
+    const rest = document.createElement("small");
+    rest.textContent = "Positionen · " + summe + " Packungen";
+    zahl.append(rest);
+  } else {
+    zahl.textContent = "—";
+  }
+
+  const q = flach(gSuchtext.trim());
+  const gefiltert = alle.filter(function (g) {
+    if (gFilter === "leer" && g.anzahl !== 0) return false;
+    if (gFilter !== "alle" && gFilter !== "leer" && g.typ !== gFilter) return false;
+    if (!q) return true;
+    return passt(g.name, q) || passt(g.hersteller, q) || passt(g.zutaten, q) || passt(g.hinweis, q);
+  });
+
+  if (!alle.length) {
+    ziel.replaceChildren(leerText("Noch keine Gewürze im Sheet."));
+    return;
+  }
+  if (!gefiltert.length) {
+    ziel.replaceChildren(leerText(q
+      ? "Nichts gefunden für „" + gSuchtext.trim() + "“."
+      : "In dieser Ansicht ist gerade nichts."));
+    return;
+  }
+
+  const teil = document.createDocumentFragment();
+  if (q) {
+    teil.append(gruppenKopf(gefiltert.length === 1 ? "1 Treffer" : gefiltert.length + " Treffer", ""));
+    const kasten = document.createElement("div");
+    kasten.className = "gruppe";
+    for (const g of gefiltert) kasten.appendChild(gewuerzZeile(g, q));
+    teil.append(kasten);
+  } else {
+    // Ohne Suche nach Typ gruppieren: Mischungen zuerst, dann Einzelne, dann Sonstiges.
+    for (const typ of ["Mischung", "Einzeln", "Sonstiges"]) {
+      const liste = gefiltert.filter(function (g) { return (g.typ || "Sonstiges") === typ; });
+      if (!liste.length) continue;
+      const leer = liste.filter(function (g) { return g.anzahl === 0; }).length;
+      teil.append(gruppenKopf(typText(typ), leer ? leer + " aufgebraucht" : String(liste.length)));
+      const kasten = document.createElement("div");
+      kasten.className = "gruppe";
+      for (const g of liste) kasten.appendChild(gewuerzZeile(g, ""));
+      teil.append(kasten);
+    }
+  }
+  ziel.replaceChildren(teil);
+}
+
+/** Zutatenliste ab der Zutat, die den Treffer enthält; davor ein „…“. */
+function zutatenAusschnitt(zutaten, q) {
+  const eben = flach(zutaten);
+  const pos = eben.indexOf(q);
+  if (pos < 0) return zutaten;
+  const komma = eben.lastIndexOf(",", pos);
+  if (komma < 0) return zutaten;
+  return "… " + zutaten.slice(komma + 1).trim();
+}
+
+function gewuerzZeile(g, q) {
+  const el = document.createElement("div");
+  el.className = "kiste" + (g.anzahl === 0 ? " aufgebraucht" : "");
+
+  const haupt = document.createElement("button");
+  haupt.type = "button";
+  haupt.className = "kiste-haupt";
+  haupt.dataset.gnr = String(g.nr);
+  haupt.setAttribute("aria-label", g.name + " öffnen");
+
+  const nr = document.createElement("span");
+  nr.className = "kiste-nr";
+  nr.textContent = String(g.anzahl) + "×";
+
+  const text = document.createElement("div");
+  text.className = "kiste-text";
+
+  const titel = document.createElement("div");
+  titel.className = "kiste-titel";
+  titel.append(markiere(g.name, q));
+
+  const meta = document.createElement("div");
+  meta.className = "kiste-meta";
+  const oben = [];
+  if (g.hersteller) oben.push(g.hersteller);
+  if (g.anzahl === 0) oben.push("aufgebraucht");
+  oben.forEach(function (t, i) {
+    if (i) meta.append(" · ");
+    meta.append(markiere(t, q));
+  });
+  // Trifft die Suche eine Zutat, die Zutatenliste ab der Fundstelle zeigen —
+  // die Zeile ist einzeilig, der Treffer stünde sonst hinter dem „…“.
+  if (q && g.zutaten && passt(g.zutaten, q) && !passt(g.name, q)) {
+    const zut = document.createElement("span");
+    zut.className = "zut";
+    zut.append(markiere(zutatenAusschnitt(g.zutaten, q), q));
+    meta.append(zut);
+  }
+
+  text.append(titel, meta);
+  haupt.append(nr, text);
+  el.append(haupt);
+  return el;
+}
+
+function gewuerzZeichnen(nr) {
+  const g = gewuerze && gewuerze.find(function (x) { return x.nr === nr; });
+  if (!g) return false;
+
+  $("gewuerz-titel").textContent = g.name;
+  const meta = [];
+  if (g.hersteller) meta.push(g.hersteller);
+  meta.push(g.typ || "Sonstiges");
+  $("gewuerz-meta").textContent = meta.join(" · ");
+
+  $("gewuerz-anzahl").textContent = String(g.anzahl);
+  $("gewuerz-anzahl-text").textContent = packungen(g.anzahl);
+  $("btn-gewuerz-minus").disabled = g.anzahl <= 0;
+  $("btn-gewuerz-plus").disabled = g.anzahl >= 99;
+
+  const zut = $("gewuerz-zutaten");
+  zut.replaceChildren();
+  if (g.zutaten) {
+    const b = document.createElement("b");
+    b.textContent = "Zutaten";
+    zut.append(b, markiere(g.zutaten, flach(gSuchtext.trim())));
+  }
+  zut.classList.toggle("versteckt", !g.zutaten);
+
+  const hin = $("gewuerz-hinweis");
+  hin.textContent = g.hinweis || "";
+  hin.classList.toggle("versteckt", !g.hinweis);
+
+  const quelle = $("gewuerz-quelle");
+  const istLink = /^https?:\/\//.test(g.quelle || "");
+  quelle.href = istLink ? g.quelle : "#";
+  quelle.textContent = istLink ? "Zur Quelle: " + g.quelle.replace(/^https?:\/\/(www\.)?/, "").split("/")[0] : "";
+  quelle.classList.toggle("versteckt", !istLink);
+  return true;
+}
+
+function gewuerzOeffnen(nr) {
+  if (!gewuerzZeichnen(nr)) return;
+  offenesGewuerz = nr;
+  overlayAuf("gewuerz");
+}
+
+/** Anzahl ändern — optimistisch wie bei den Kisten. */
+async function gewuerzSetzen(nr, anzahl) {
+  const g = gewuerze && gewuerze.find(function (x) { return x.nr === nr; });
+  if (!g || anzahl < 0 || anzahl > 99) return false;
+
+  const vorher = g.anzahl;
+  g.anzahl = anzahl;
+  zeichneGewuerze();
+  if (offenesGewuerz === nr) gewuerzZeichnen(nr);
+
+  try {
+    const antwort = await ruf({ action: "gewuerz_setzen", code: lies(SPEICHER.code, ""), nr: nr, anzahl: anzahl });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+      return true;
+    }
+    g.anzahl = vorher;
+    zeichneGewuerze();
+    if (offenesGewuerz === nr) gewuerzZeichnen(nr);
+    if (antwort && antwort.error === "code") codeAbgelehnt();
+    else toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
+  } catch (e) {
+    g.anzahl = vorher;
+    zeichneGewuerze();
+    if (offenesGewuerz === nr) gewuerzZeichnen(nr);
+    toast("Nicht gespeichert — bitte erneut versuchen.");
+    return false;
+  }
+}
+
 /** Reiter umschalten. laden=false beim Start, dort lädt aktualisiere(). */
 function setzeBereich(neu, laden) {
-  bereich = neu === "kisten" ? "kisten" : "spar";
+  bereich = neu === "kisten" || neu === "gewuerze" ? neu : "spar";
   schreibe(SPEICHER.bereich, bereich);
 
   const istK = bereich === "kisten";
+  const istG = bereich === "gewuerze";
   for (const b of $("reiter").querySelectorAll("button")) {
     b.setAttribute("aria-selected", String(b.dataset.bereich === bereich));
   }
-  $("kopf-spar").classList.toggle("versteckt", istK);
+  $("kopf-spar").classList.toggle("versteckt", istK || istG);
   $("kopf-kisten").classList.toggle("versteckt", !istK);
-  $("liste").classList.toggle("versteckt", istK);
+  $("kopf-gewuerze").classList.toggle("versteckt", !istG);
+  $("liste").classList.toggle("versteckt", istK || istG);
   $("kisten-liste").classList.toggle("versteckt", !istK);
-  $("aktionen").classList.toggle("versteckt", istK);
+  $("gewuerze-liste").classList.toggle("versteckt", !istG);
+  $("aktionen").classList.toggle("versteckt", istK || istG);
   if (!istK && auswahlModus) setzeAuswahlModus(false);
   auswahlLeiste();
   $("liste-bereich").scrollTop = 0;
   standHinweis(false);
 
-  if (laden !== false && istK && !kisten && lies(SPEICHER.code, "")) ladeKisten(false);
+  if (laden !== false && lies(SPEICHER.code, "")) {
+    if (istK && !kisten) ladeKisten(false);
+    if (istG && !gewuerze) ladeGewuerze(false);
+  }
 }
 
 /** Aktualisiert, was gerade sichtbar ist. */
 function aktualisiere(still) {
-  return bereich === "kisten" ? ladeKisten(still) : ladeStand(still);
+  if (bereich === "kisten") return ladeKisten(still);
+  if (bereich === "gewuerze") return ladeGewuerze(still);
+  return ladeStand(still);
 }
 
 /* --- Overlays ------------------------------------------------------------- */
@@ -2139,6 +2537,48 @@ $("btn-kiste-status").addEventListener("click", () => {
 
 $("btn-kiste-loeschen").addEventListener("click", loeschKnopfGetippt);
 
+/* Gewürze */
+$("gfilter").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-gfilter]");
+  if (!knopf) return;
+  gFilter = knopf.dataset.gfilter;
+  for (const b of $("gfilter").querySelectorAll("button[data-gfilter]")) {
+    b.setAttribute("aria-pressed", String(b.dataset.gfilter === gFilter));
+  }
+  zeichneGewuerze();
+});
+
+for (const ereignis of ["input", "search"]) {
+  $("gsuche").addEventListener(ereignis, () => {
+    gSuchtext = $("gsuche").value;
+    $("btn-gsuche-leeren").classList.toggle("versteckt", gSuchtext === "");
+    zeichneGewuerze();
+  });
+}
+
+$("btn-gsuche-leeren").addEventListener("click", () => {
+  $("gsuche").value = "";
+  gSuchtext = "";
+  $("btn-gsuche-leeren").classList.add("versteckt");
+  zeichneGewuerze();
+  $("gsuche").focus();
+});
+
+$("gewuerze-liste").addEventListener("click", (e) => {
+  const knopf = e.target.closest("button[data-gnr]");
+  if (knopf) gewuerzOeffnen(Number(knopf.dataset.gnr));
+});
+
+$("btn-gewuerz-minus").addEventListener("click", () => {
+  const g = gewuerze && gewuerze.find((x) => x.nr === offenesGewuerz);
+  if (g) gewuerzSetzen(g.nr, g.anzahl - 1);
+});
+
+$("btn-gewuerz-plus").addEventListener("click", () => {
+  const g = gewuerze && gewuerze.find((x) => x.nr === offenesGewuerz);
+  if (g) gewuerzSetzen(g.nr, g.anzahl + 1);
+});
+
 $("btn-suche-leeren").addEventListener("click", () => {
   $("suche").value = "";
   suchtext = "";
@@ -2158,13 +2598,13 @@ for (const el of document.querySelectorAll("[data-schliessen]")) {
   el.addEventListener("click", () => overlayZu(el.closest(".overlay").id));
 }
 
-for (const id of ["buchen", "menu", "kiste", "aendern"]) {
+for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz"]) {
   $(id).addEventListener("click", (e) => { if (e.target.id === id) overlayZu(id); });
 }
 
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Escape") return;
-  for (const id of ["buchen", "menu", "kiste", "aendern"]) overlayZu(id);
+  for (const id of ["buchen", "menu", "kiste", "aendern", "gewuerz"]) overlayZu(id);
 });
 
 for (const feld of [$("betrag"), $("kommentar")]) {
@@ -2352,6 +2792,13 @@ if (window.visualViewport) {
     kisten = kistenSpeicher.kisten;
     kistenGeladenAm = kistenSpeicher.geladenAm;
     zeichneKisten();
+  }
+
+  const gewuerzeSpeicher = lies(SPEICHER.gewuerze, null);
+  if (gewuerzeSpeicher && gewuerzeSpeicher.gewuerze) {
+    gewuerze = gewuerzeSpeicher.gewuerze;
+    gewuerzeGeladenAm = gewuerzeSpeicher.geladenAm;
+    zeichneGewuerze();
   }
 
   setzeBereich(lies(SPEICHER.bereich, "spar"), false);
