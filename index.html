@@ -729,6 +729,39 @@ main {
 .kiste-nr svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .kiste.aufgebraucht .kiste-titel { color: var(--leise); }
 
+/* Wischen nach links legt hinter der Zeile einen Löschen-Knopf frei. Die Zeile
+   selbst bekommt dafür eine eigene Kartenfarbe, sonst schiene der Knopf durch. */
+.wisch {
+  position: relative;
+  overflow: hidden;
+}
+
+.wisch > .kiste {
+  position: relative;
+  z-index: 1;
+  background: var(--karte);
+  touch-action: pan-y;
+  transition: transform .18s ease;
+}
+
+.wisch > .kiste.zieht { transition: none; }
+
+.gruppe > .wisch:first-child > .kiste { border-top: 0; }
+
+.wisch-loeschen {
+  position: absolute;
+  top: 0; bottom: 0; right: 0;
+  width: 92px;
+  display: grid;
+  place-items: center;
+  background: var(--aus);
+  color: #fff;
+  font-size: 14.5px;
+  font-weight: 650;
+}
+
+.wisch-loeschen:active { filter: brightness(1.1); }
+
 /* Plus am Zeilenende auf der Besorgen-Liste: holt die Position in den Vorrat.
    Eigene Klasse: „.plus“ gehört den positiven Beträgen im Sparglas. */
 .besorgen-plus {
@@ -1605,8 +1638,8 @@ function mockGewuerze(nutzlast) {
     if (doppelt) return { ok: false, error: "doppelt", nr: doppelt.nr };
     neueNr = liste.reduce(function (m, x) { return Math.max(m, x.nr); }, 0) + 1;
     liste.push({ nr: neueNr, name: name, hersteller: String(nutzlast.hersteller || ""), typ: nutzlast.typ || "Sonstiges",
-      anzahl: Number(nutzlast.anzahl) || 0, ort: "", zutaten: String(nutzlast.zutaten || ""), quelle: "", hinweis: "",
-      art: nutzlast.art || "gewuerz" });
+      anzahl: Number(nutzlast.anzahl) || 0, ort: String(nutzlast.ort || ""), zutaten: String(nutzlast.zutaten || ""),
+      quelle: String(nutzlast.quelle || ""), hinweis: String(nutzlast.hinweis || ""), art: nutzlast.art || "gewuerz" });
   }
   schreibe(SPEICHER.mockGewuerze, liste);
   return { ok: true, gewuerze: liste, nr: neueNr };
@@ -2435,8 +2468,21 @@ function zutatenAusschnitt(zutaten, q) {
 
 function gewuerzZeile(g, q) {
   const art = artVon(g);
+  const huelle = document.createElement("div");
+  huelle.className = "wisch";
+  const loeschen = document.createElement("button");
+  loeschen.type = "button";
+  loeschen.className = "wisch-loeschen";
+  loeschen.dataset.gloeschen = String(g.nr);
+  loeschen.textContent = "Löschen";
+  loeschen.setAttribute("aria-label", g.name + " löschen");
+  loeschen.tabIndex = -1;
+  huelle.append(loeschen);
+
   const el = document.createElement("div");
   el.className = "kiste" + (g.anzahl === 0 && art !== "einmalig" ? " aufgebraucht" : "");
+  huelle.append(el);
+  wischbar(el);
 
   const haupt = document.createElement("button");
   haupt.type = "button";
@@ -2503,7 +2549,117 @@ function gewuerzZeile(g, q) {
     plus.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>';
     el.append(plus);
   }
-  return el;
+  return huelle;
+}
+
+/* --- Wischen zum Löschen ---------------------------------------------------
+   Pointer-Ereignisse decken Finger und Maus ab. Waagerecht nach links zieht die
+   Zeile bis zur Knopfbreite auf, senkrecht bleibt das normale Scrollen (touch-action:
+   pan-y). Nach einem Zug wird das folgende Tippen verschluckt, damit sich nicht
+   nebenbei das Blatt öffnet. Es ist immer nur eine Zeile offen. */
+const WISCH_BREITE = 92;
+let offeneWischZeile = null;
+
+function wischSchliessen() {
+  if (offeneWischZeile) {
+    offeneWischZeile.style.transform = "";
+    offeneWischZeile = null;
+  }
+}
+
+function wischbar(zeile) {
+  let startX = 0, startY = 0, dx = 0, aktiv = false, gezogen = false, warOffen = false;
+
+  zeile.addEventListener("pointerdown", (e) => {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    startX = e.clientX; startY = e.clientY; dx = 0;
+    aktiv = true; gezogen = false;
+    warOffen = offeneWischZeile === zeile;
+    if (offeneWischZeile && offeneWischZeile !== zeile) wischSchliessen();
+  });
+
+  zeile.addEventListener("pointermove", (e) => {
+    if (!aktiv) return;
+    const x = e.clientX - startX, y = e.clientY - startY;
+    if (!gezogen) {
+      if (Math.abs(x) < 8 || Math.abs(x) < Math.abs(y)) return;
+      gezogen = true;
+      zeile.classList.add("zieht");
+      try { zeile.setPointerCapture(e.pointerId); } catch (err) { /* egal */ }
+    }
+    dx = Math.max(-WISCH_BREITE, Math.min(0, x - (warOffen ? WISCH_BREITE : 0)));
+    zeile.style.transform = "translateX(" + dx + "px)";
+  });
+
+  const ende = () => {
+    if (!aktiv) return;
+    aktiv = false;
+    zeile.classList.remove("zieht");
+    if (!gezogen) return;
+    if (dx < -WISCH_BREITE / 2) {
+      zeile.style.transform = "translateX(-" + WISCH_BREITE + "px)";
+      offeneWischZeile = zeile;
+    } else {
+      zeile.style.transform = "";
+      if (offeneWischZeile === zeile) offeneWischZeile = null;
+    }
+  };
+  zeile.addEventListener("pointerup", ende);
+  zeile.addEventListener("pointercancel", ende);
+
+  // Tippen direkt nach einem Zug nicht als Öffnen werten.
+  zeile.addEventListener("click", (e) => {
+    if (gezogen) { e.stopPropagation(); e.preventDefault(); gezogen = false; }
+  }, true);
+}
+
+/** Position löschen — mit Rückgängig, das sie samt aller Felder neu anlegt. */
+async function gewuerzLoeschen(nr) {
+  const g = gewuerze && gewuerze.find(function (x) { return x.nr === nr; });
+  if (!g) return false;
+  wischSchliessen();
+  const vorher = gewuerze;
+  gewuerze = gewuerze.filter(function (x) { return x.nr !== nr; });
+  zeichneGewuerze();
+  if (offenesGewuerz === nr) overlayZu("gewuerz");
+  try {
+    const antwort = await ruf({ action: "gewuerz_loeschen", code: lies(SPEICHER.code, ""), nr: nr });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+      toast("Gelöscht: " + g.name, { text: "Rückgängig", tun: () => wiederAnlegen(g) });
+      return true;
+    }
+    gewuerze = vorher;
+    zeichneGewuerze();
+    if (antwort && antwort.error === "code") codeAbgelehnt();
+    else toast("Nicht gelöscht — bitte erneut versuchen.");
+    return false;
+  } catch (e) {
+    gewuerze = vorher;
+    zeichneGewuerze();
+    toast("Nicht gelöscht — bitte erneut versuchen.");
+    return false;
+  }
+}
+
+/** Rückgängig nach Löschen: die Position mit allen Feldern neu anlegen (neue nr). */
+async function wiederAnlegen(g) {
+  try {
+    const antwort = await ruf({
+      action: "gewuerz_neu", code: lies(SPEICHER.code, ""),
+      name: g.name, hersteller: g.hersteller || "", typ: g.typ || "Sonstiges",
+      anzahl: g.anzahl || 0, zutaten: g.zutaten || "", hinweis: g.hinweis || "",
+      art: artVon(g), ort: g.ort || "", quelle: g.quelle || ""
+    });
+    if (antwort && antwort.ok) {
+      uebernimmGewuerze(antwort);
+      toast("Wiederhergestellt: " + g.name);
+    } else {
+      toast("Nicht wiederhergestellt — bitte neu anlegen.");
+    }
+  } catch (e) {
+    toast("Nicht wiederhergestellt — bitte neu anlegen.");
+  }
 }
 
 function packungenText(n) {
@@ -2600,7 +2756,7 @@ async function gewuerzErledigt(nr) {
     const antwort = await ruf({ action: "gewuerz_loeschen", code: lies(SPEICHER.code, ""), nr: nr });
     if (antwort && antwort.ok) {
       uebernimmGewuerze(antwort);
-      toast("Erledigt: " + g.name, { text: "Rückgängig", tun: () => wiederAufListe(g) });
+      toast("Erledigt: " + g.name, { text: "Rückgängig", tun: () => wiederAnlegen(g) });
       return true;
     }
     gewuerze = vorher;
@@ -2613,25 +2769,6 @@ async function gewuerzErledigt(nr) {
     zeichneGewuerze();
     toast("Nicht gespeichert — bitte erneut versuchen.");
     return false;
-  }
-}
-
-/** Rückgängig nach „Erledigt“: die gelöschte Einmal-Position wieder anlegen. */
-async function wiederAufListe(g) {
-  try {
-    const antwort = await ruf({
-      action: "gewuerz_neu", code: lies(SPEICHER.code, ""),
-      name: g.name, hersteller: g.hersteller || "", hinweis: g.hinweis || "",
-      art: "einmalig", typ: "Sonstiges", anzahl: 0, zutaten: ""
-    });
-    if (antwort && antwort.ok) {
-      uebernimmGewuerze(antwort);
-      toast("Wieder auf der Einkaufsliste: " + g.name);
-    } else {
-      toast("Nicht wiederhergestellt — bitte neu anlegen.");
-    }
-  } catch (e) {
-    toast("Nicht wiederhergestellt — bitte neu anlegen.");
   }
 }
 
@@ -2659,7 +2796,7 @@ function gneuArtAnzeigen() {
     : art === "sonstiges" ? "Vorrat außerhalb der Gewürze, mit Packungszähler."
     : "";
   $("gneu-name").placeholder =
-    art === "einmalig" ? "z. B. Geschenk für Eva"
+    art === "einmalig" ? "z. B. Batterien AAA"
     : art === "sonstiges" ? "z. B. Spülmaschinentabs"
     : "z. B. Kreuzkümmel gemahlen";
 }
@@ -2676,6 +2813,8 @@ function gneuOeffnen() {
   gneuFehler("");
   $("btn-gneu-anlegen").disabled = false;
   overlayAuf("gneu");
+  // Sofort fokussieren: iOS zeigt die Tastatur nur, wenn der Fokus noch im Tipp-Ereignis passiert.
+  $("gneu-name").focus({ preventScroll: true });
   setTimeout(() => $("gneu-name").focus(), 180);
 }
 
@@ -2979,6 +3118,11 @@ $("gewuerze-liste").addEventListener("click", async (e) => {
     }
     return;
   }
+  const loeschen = e.target.closest("button[data-gloeschen]");
+  if (loeschen) {
+    gewuerzLoeschen(Number(loeschen.dataset.gloeschen));
+    return;
+  }
   const haken = e.target.closest("button[data-gerledigt]");
   if (haken) {
     gewuerzErledigt(Number(haken.dataset.gerledigt));
@@ -2989,6 +3133,11 @@ $("gewuerze-liste").addEventListener("click", async (e) => {
 });
 
 $("btn-gewuerz-neu").addEventListener("click", gneuOeffnen);
+
+document.addEventListener("pointerdown", (e) => {
+  if (offeneWischZeile && !offeneWischZeile.parentElement.contains(e.target)) wischSchliessen();
+});
+$("liste-bereich").addEventListener("scroll", wischSchliessen, { passive: true });
 $("btn-gneu-anlegen").addEventListener("click", gneuAnlegen);
 
 $("gneu-art").addEventListener("click", (e) => {

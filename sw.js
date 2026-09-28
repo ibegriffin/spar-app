@@ -5,7 +5,7 @@
 
    Nach Änderungen an index.html die Zahl in CACHE erhöhen. */
 
-const CACHE = "sparglas-v11";
+const CACHE = "sparglas-v12";
 const DATEIEN = [
   "./",
   "./index.html",
