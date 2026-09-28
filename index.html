@@ -690,8 +690,9 @@ main {
 .kiste.aufgebraucht .kiste-nr { background: var(--linie); color: var(--leise); }
 .kiste.aufgebraucht .kiste-titel { color: var(--leise); }
 
-/* Plus am Zeilenende auf der Besorgen-Liste: holt die Position in den Vorrat. */
-.plus {
+/* Plus am Zeilenende auf der Besorgen-Liste: holt die Position in den Vorrat.
+   Eigene Klasse: „.plus“ gehört den positiven Beträgen im Sparglas. */
+.besorgen-plus {
   flex: none;
   width: 34px;
   height: 34px;
@@ -706,10 +707,10 @@ main {
   line-height: 1;
 }
 
-.plus:active { filter: brightness(1.1); }
+.besorgen-plus:active { filter: brightness(1.1); }
 
 @media (prefers-color-scheme: dark) {
-  .plus { background: #1b6b54; }
+  .besorgen-plus { background: #1b6b54; }
 }
 
 .wahl.drei { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
@@ -2363,7 +2364,7 @@ function gewuerzZeile(g, q) {
   if (g.anzahl === 0) {
     const plus = document.createElement("button");
     plus.type = "button";
-    plus.className = "plus";
+    plus.className = "besorgen-plus";
     plus.dataset.gplus = String(g.nr);
     plus.setAttribute("aria-label", g.name + " als gekauft in den Vorrat übernehmen");
     plus.textContent = "+";
